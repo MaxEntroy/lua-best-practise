@@ -7,22 +7,33 @@ extern "C" {
 #include "lauxlib.h"
 }
 
-static int foo(lua_State* L) {
-    std::cout << "foo called." << std::endl;
+static int Add(lua_State* L) {
+    std::cout << "Add called." << std::endl;
+    int left = 0, right = 0;
 
-    std::string name = lua_tostring(L, -1);
-    int age = lua_tointeger(L, -2);
+    left = lua_tointeger(L, 1);
+    right = lua_tointeger(L, 2);
 
-    std::cout << "name: " << name << std::endl;
-    std::cout << "age: " << age << std::endl;
-    std::cout << "stack size: " << lua_gettop(L) << std::endl;
+    int sum = left + right;
 
-    lua_pushinteger(L, age);
-    lua_pushstring(L, name.c_str());
+    lua_pushinteger(L, sum);
 
-    std::cout << "stack size: " << lua_gettop(L) << std::endl;
+    return 1;
+}
 
-    return 2;
+static int Add1(lua_State* L) {
+    std::cout << "Add1 called." << std::endl;
+
+    int n = lua_gettop(L);
+    int sum = 0;
+    for(int i = 1; i <= n; ++i) {
+        int tmp = lua_tointeger(L, i);
+        sum += tmp;
+    }
+
+    lua_pushinteger(L, sum);
+
+    return 1;
 }
 
 void PrintStackSize(lua_State* L) {
@@ -118,9 +129,30 @@ void LuaAssessTableInC1() {
     lua_close(L);
 }
 
+void LuaAssessFuncInC() {
+    lua_State* L = luaL_newstate();
+    luaL_openlibs(L);
+
+    const std::string kScriptPath("./luafile/");
+    const std::string kScriptName("test.lua");
+    const std::string kFileName = kScriptPath + kScriptName;
+
+    lua_pushcfunction(L, Add);
+    lua_setglobal(L, "c_add");
+
+    lua_pushcfunction(L, Add1);
+    lua_setglobal(L, "c_add1");
+
+    luaL_dofile(L, kFileName.c_str());
+    PrintStackSize(L);
+
+    lua_close(L);
+}
+
 int main(void) {
     //LuaAssessVarInC();
     //LuaAssessTableInC();
-    LuaAssessTableInC1();
+    //LuaAssessTableInC1();
+    LuaAssessFuncInC();
     return 0;
 }
