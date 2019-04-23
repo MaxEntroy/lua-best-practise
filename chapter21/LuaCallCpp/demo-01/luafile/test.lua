@@ -17,6 +17,15 @@ print("sum = "..sum)
 
 sum = c_add1(1,2,3,4,5);
 print("sum = "..sum)
--- ]]
---
+--]]
+
+local id = 101
+local student = c_getstudentinfo(id)
+print(type(student))
+if student ~= nil then
+    for k, v in pairs(student) do
+        print(k,v)
+    end
+end
+
 print("------------------------------------")

@@ -1,10 +1,19 @@
-#include <iostream>
-#include <string>
-
+// 注意头文件顺序
 extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+}
+
+#include <iostream>
+#include <map>
+#include <string>
+
+#include "inc/Student.h"
+
+
+void PrintStackSize(lua_State* L) {
+    std::cout << "lua stack size : " << lua_gettop(L) << std::endl;
 }
 
 static int Add(lua_State* L) {
@@ -36,8 +45,39 @@ static int Add1(lua_State* L) {
     return 1;
 }
 
-void PrintStackSize(lua_State* L) {
-    std::cout << "lua stack size : " << lua_gettop(L) << std::endl;
+static int GetStudentInfo(lua_State* L) {
+    // 此时打印的是独立栈的栈中元素
+    // 区别 这是一个c函数 参数获取和返回值都通过独立栈进行交互 不要搞混了 返回值不用setglobal
+    // 这个函数也暴露另一个问题 如果想接受一个c环境当中的参数 怎么获取???
+    std::cout << "GetStudentInfo called." << std::endl;
+    int id = 0;
+    std::string name;
+
+    std::map<int, Student> mapping_id2student;
+    Student s(101, "kang");
+    mapping_id2student[101] = s;
+
+    id = lua_tointeger(L, 1);
+    Student stu = mapping_id2student[id];
+
+    id = stu.id();
+    name = stu.name();
+    std::cout << "id: " << id << ", name: "<< name << std::endl;
+
+    lua_newtable(L);
+    PrintStackSize(L);
+
+    lua_pushinteger(L, id);
+    PrintStackSize(L);
+    lua_setfield(L, -2, "id");
+    PrintStackSize(L);
+
+    lua_pushstring(L, name.c_str());
+    PrintStackSize(L);
+    lua_setfield(L, -2, "name");
+    PrintStackSize(L);
+
+    return 1;
 }
 
 void LuaAssessVarInC() {
@@ -149,10 +189,36 @@ void LuaAssessFuncInC() {
     lua_close(L);
 }
 
+void LuaAssessFuncInC1() {
+    // 变量 函数
+    // 任何Lua调用的c对象 都必须在Lua环境中进行注册
+    lua_State* L = luaL_newstate();
+    luaL_openlibs(L);
+
+    const std::string kScriptPath("./luafile/");
+    const std::string kScriptName("test.lua");
+    const std::string kFileName = kScriptPath + kScriptName;
+
+    lua_register(L, "c_add", Add);
+    PrintStackSize(L);
+
+    lua_register(L, "c_add1", Add1);
+    PrintStackSize(L);
+
+    lua_register(L, "c_getstudentinfo", GetStudentInfo);
+    PrintStackSize(L);
+
+    luaL_dofile(L, kFileName.c_str());
+    PrintStackSize(L);
+
+    lua_close(L);
+}
+
 int main(void) {
     //LuaAssessVarInC();
     //LuaAssessTableInC();
     //LuaAssessTableInC1();
-    LuaAssessFuncInC();
+    //LuaAssessFuncInC();
+    LuaAssessFuncInC1();
     return 0;
 }
