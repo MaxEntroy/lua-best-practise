@@ -9,9 +9,6 @@ extern "C" {
 #include <map>
 #include <string>
 
-#include "inc/Student.h"
-
-
 void PrintStackSize(lua_State* L) {
     std::cout << "lua stack size : " << lua_gettop(L) << std::endl;
 }
@@ -149,7 +146,7 @@ void LuaAssessFuncInC2() {
     lua_close(L);
 }
 
-void LuaAssessFuncInC31() {
+void LuaAssessFuncInC3() {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
 
@@ -178,9 +175,7 @@ void LuaAssessFuncInC31() {
     lua_close(L);
 }
 
-void LuaAssessFuncInC3() {
-    // 上面的方式，注册全局函数是方便的
-    // 但是，如果把函数注册到一个表里面
+void LuaAssessFuncInC4() {
     // 采用如下的方式，非常方便，否则还有很多lua_setfield()操作
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
@@ -189,7 +184,7 @@ void LuaAssessFuncInC3() {
     const std::string kScriptName("test.lua");
     const std::string kFileName = kScriptPath + kScriptName;
 
-    const luaL_Reg libs[] = {
+    const luaL_Reg math_funcs[] = {
         {"Add", LuaAdd},
         {"Minus", LuaMinus},
         {"Mul", LuaMul},
@@ -197,8 +192,8 @@ void LuaAssessFuncInC3() {
         {NULL, NULL}
     };
 
-    luaL_newlib(L, libs);
-    lua_setglobal(L, "CApi");
+    luaL_newlib(L, math_funcs);
+    lua_setglobal(L, "CMathApi");
 
     luaL_dofile(L, kFileName.c_str());
     PrintStackSize(L);
@@ -214,12 +209,11 @@ static int LuaopenCApi(lua_State* L) {
         {"Div", LuaDiv},
         {NULL, NULL}
     };
-    luaL_checkversion(L);
     luaL_newlib(L, libs);
     return 1;
 }
 
-void LuaAssessFuncInC4() {
+void LuaAssessFuncInC5() {
     // 特别注意：
     // 这种实现形式跟以往不同
     // 上一版的实现，它是放到全局表里面
@@ -243,7 +237,8 @@ void LuaAssessFuncInC4() {
 int main(void) {
     //LuaAssessFuncInC();
     //LuaAssessFuncInC1();
-    LuaAssessFuncInC2();
+    //LuaAssessFuncInC2();
     //LuaAssessFuncInC3();
+    LuaAssessFuncInC4();
     return 0;
 }

@@ -21,25 +21,22 @@ local function testLuaAssessFuncInC()
     print("ret = "..ret)
 end
 
-local function ttest() 
-local left = 10
-local right = 2
-local ret = 0
+local function testLuaAssessFuncInC3() 
+    print("testLuaAssessFuncInC3 called.")
+    local left = 10
+    local right = 2
 
-local CApi = require "CApi"
-
-ret = CApi.Add(left, right)
-print("ret = "..ret)
-ret = CApi.Minus(left, right)
-print("ret = "..ret)
-ret = CApi.Mul(left, right)
-print("ret = "..ret)
-ret = CApi.Div(left, right)
-print("ret = "..ret)
+    local ret = CMathApi.Add(left, right)
+    print("ret = "..ret)
+    ret = CMathApi.Minus(left, right)
+    print("ret = "..ret)
+    ret = CMathApi.Mul(left, right)
+    print("ret = "..ret)
+    ret = CMathApi.Div(left, right)
+    print("ret = "..ret)
 end
 
-
-
-testLuaAssessFuncInC()
+-- testLuaAssessFuncInC()
+testLuaAssessFuncInC3()
 
 print("------------------------------------")
