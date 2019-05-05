@@ -1,3 +1,4 @@
+-- 定义局部表
 local _M = {}
 
 function _M:Add(a, b)
