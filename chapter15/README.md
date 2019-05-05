@@ -37,7 +37,7 @@
 >If there is any error loading or running the module, or if it cannot find any loader for the module, then require raises an error.
 
 - require伪代码
-```
+```lua
 function require(name)
     if not package.loaded[name] then
         local loader = findloader(name)
