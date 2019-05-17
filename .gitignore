@@ -40,7 +40,7 @@ luac.out
 *.hex
 
 # Binary
-**/bin/
+bin/
 
 # Vs workspace
 *.code-workspace
