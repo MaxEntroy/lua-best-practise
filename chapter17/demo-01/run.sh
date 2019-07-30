@@ -1,3 +1,3 @@
 #!bin/bash
-./bin/main
+./bin/main --flagfile=./conf/app.conf
 

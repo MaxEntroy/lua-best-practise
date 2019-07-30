@@ -8,8 +8,17 @@ extern "C" {
 #include "lauxlib.h"
 }
 
-int main(void) {
-    // gflags传下脚本名称
-    // SetRoot设置下
+#include <gflags/gflags.h>
+
+DEFINE_string(script_path, "", "the lua script path" );
+
+void Test1(const std::string& lua_script) {
+
+}
+
+int main(int argc, char* argv[]) {
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    std::cout << FLAGS_script_path << std::endl;
+    Test1(FLAGS_script_path);
     return 0;
 }
