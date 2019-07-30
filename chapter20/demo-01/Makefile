@@ -6,7 +6,7 @@ TARGET:=$(EXE_DIR)/main
 OBJS:= $(wildcard $(SRC_DIR)/*.cc)
 
 CC:=g++
-CFLAGS:=-g -Wall -llua -lgflags -lpthread
+CFLAGS:=-g -Wall -llua -ldl -lgflags -lpthread
 
 $(TARGET):$(OBJS)
 	$(CC) -o $@ $(OBJS) $(CFLAGS)

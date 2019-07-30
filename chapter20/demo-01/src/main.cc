@@ -12,13 +12,17 @@ extern "C" {
 
 DEFINE_string(script_path, "", "the lua script path" );
 
-void Test1(const std::string& lua_script) {
-
+void Test1(lua_State*& L, const std::string& lua_script) {
+    luaL_dofile(L, lua_script.c_str());
 }
 
 int main(int argc, char* argv[]) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-    std::cout << FLAGS_script_path << std::endl;
-    Test1(FLAGS_script_path);
+    lua_State* L = luaL_newstate();
+    luaL_openlibs(L);
+
+    Test1(L, FLAGS_script_path);
+
+    lua_close(L);
     return 0;
 }
