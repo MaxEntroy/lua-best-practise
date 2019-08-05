@@ -28,7 +28,7 @@ It returns false if there are no errors or true in case of errors.
 
 ## c访问lua全局变量/全局表字段
 这块需要特别注意的是，api操作对于栈有什么变化。比如lua_is/toxxx这种api，其实对于栈没有任何操作。
-####lua
+#### lua
 ```lua
 int lua_getglobal (lua_State *L, const char *name);
 Pushes onto the stack the value of the global name. Returns the type of that value.
@@ -44,7 +44,7 @@ This function pops the key from the stack, pushing the resulting value in its pl
 这个函数一次入栈，一次出栈。搞明白出入栈的到底是什么东西。
 ```
 
-####注意
+#### 注意
 - 获取表字段步骤
     - 表入栈
     - key入栈(lua_getfiled这种形式不用)
@@ -55,7 +55,7 @@ This function pops the key from the stack, pushing the resulting value in its pl
     - key是string
     - {1,2,3}->{[1] = 1, [2] = 2, [3] = 3}，纯线性表的形式不行
 
-####参考<br>
+#### 参考<br>
 [lua与c/c++交互](https://www.cnblogs.com/ourroad/p/3220364.html)
 
 ## c访问lua全局函数
