@@ -9,3 +9,4 @@ stu = {
 }
 
 grades = {98,99,97,95,96}
+len = #grades
