@@ -42,7 +42,7 @@ void Test1(lua_State* L, const std::string& script) {
     lua_getglobal(L, "cal");
 
     lua_getfield(L, -1, "Add");
-    lua_getglobal(L, "cal"); -- 写法非常trick，结合lua脚本来看
+    lua_getglobal(L, "cal"); // 写法非常trick，结合lua脚本来看
     lua_pushinteger(L, x);
     lua_pushinteger(L, y);
     lua_pcall(L, 3, 1, 0);
