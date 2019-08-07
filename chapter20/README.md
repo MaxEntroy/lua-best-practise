@@ -59,3 +59,27 @@ This function pops the key from the stack, pushing the resulting value in its pl
 [lua与c/c++交互](https://www.cnblogs.com/ourroad/p/3220364.html)
 
 ## c访问lua全局函数
+
+
+#### 步骤
+- 函数压栈(表函数一样)
+- 参数压栈
+- 调用lua_pcall
+    - 指定nargs,nresults
+    - 调用完成函数和参数均出栈
+- 返回值入栈
+    - 参数和返回值的出入栈顺序对应到函数中从左往右
+
+#### lua
+```lua
+int lua_pcall (lua_State *L, int nargs, int nresults, int msgh);
+返回值
+LUA_OK (0): 成功。
+LUA_ERRRUN: 运行时错误。
+LUA_ERRMEM: 内存分配错误。对于这种错，Lua 不会调用错误处理函数。
+LUA_ERRERR: 在运行错误处理函数时发生的错误。
+LUA_ERRGCMM: 在运行 __gc 元方法时发生的错误。 （这个错误和被调用的函数无关。）
+```
+
+注意
+>使用 xpcall 或 lua_pcall 时， 你应该提供一个 消息处理函数 用于错误抛出时调用。 该函数需接收原始的错误消息，并返回一个新的错误消息。 它在错误发生后栈尚未展开时调用， 因此可以利用栈来收集更多的信息， 比如通过探知栈来创建一组栈回溯信息。 同时，该处理函数也处于保护模式下，所以该函数内发生的错误会再次触发它（递归）。 如果递归太深，Lua 会终止调用并返回一个合适的消息。
