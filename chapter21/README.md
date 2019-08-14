@@ -41,6 +41,144 @@ void lua_setfield (lua_State *L, int index, const char *k);
 
 #### lua调用c函数
 
+- private local stack
+>In order to communicate properly with Lua,a C function must use the following protocol,
+which defines the way parameters and results are passed:
+
+>a C function receives its arguments from Lua in its stack in direct order (the first argument is
+pushed first) So , when the function starts , lua_gettop(L) returns the number of arguments received by the function
+ The first argument (if any) is at index 1 and its last argument is at index lua_gettop(L)。
+
+>To return values to Lua, a C function just pushes them onto the stack, in direct order (the first result is pushed first),and returns the number of results
+
+>Any other value in the stack below the results will be properly discarded by Lua. Like a
+Lua function,a C function called by Lua can also return many results
+
+显然，**Any other value in the stack below the results will be properly discarded by Lua**所提到的stack，是private local stack，不是全局栈
+
+
+## demo-01
+lua调用c函数private local stack，不是全局栈，做了个实验。
+```cpp
+void Driver(lua_State* L, const std::string& lua_script) {
+    luaL_dofile(L, lua_script.c_str());
+
+    lua_getglobal(L, "SetScriptPath");
+    lua_pushstring(L, FLAGS_script_path.c_str());
+    lua_pcall(L, 1, 0, 0);
+
+    StackDump(L);
+    std::string test_msg = "test_msg";
+    lua_pushstring(L, test_msg.c_str());
+    int test_val = 255;
+    lua_pushinteger(L, test_val);
+    StackDump(L);
+
+    std::string req_arg = "hello, world";
+    lua_getglobal(L, "DoTask");
+    StackDump(L);
+    lua_pushstring(L, req_arg.c_str());
+    StackDump(L);
+    lua_pcall(L, 1, 1, 0);
+    StackDump(L);
+
+    std::string ret = lua_tostring(L, -1);
+    std::cout << ret << std::endl;
+    StackDump(L);
+
+    lua_settop(L, 0);
+}
+/*
+-----StackDump called.-----
+-----StackDump finished.-----
+-----StackDump called.-----
+255
+test_msg
+-----StackDump finished.-----
+-----StackDump called.-----
+function
+255
+test_msg
+-----StackDump finished.-----
+-----StackDump called.-----
+hello, world
+function
+255
+test_msg
+-----StackDump finished.-----
+lua: hello, world
+hello, world!
+-----StackDump called.-----
+hello, world
+255
+test_msg
+-----StackDump finished.-----
+hello, world
+-----StackDump called.-----
+hello, world
+255
+test_msg
+-----StackDump finished.-----
+*/
+```
+显然，在lua调用的c函数之前，入栈的参数，并没有被清空。证明，清空的是private local stack，而非全局栈。
+
+又进步做了实验，在Lua调用c的函数当中，进行StackDump
+```cpp
+#include "include/base.h"
+#include "include/lua_lib.h"
+
+#include <iostream>
+
+int Foo(lua_State* L) {
+    std::cout << "hello, world!" << std::endl;
+    std::cout << "***lua is go to call StackDump.***" << std::endl;
+    StackDump(L);
+    std::cout << "***lua finished StackDump ***" << std::endl;
+    return 0;
+}
+
+/*
+-----StackDump called.-----
+-----StackDump finished.-----
+-----StackDump called.-----
+255
+test_msg
+-----StackDump finished.-----
+-----StackDump called.-----
+function
+255
+test_msg
+-----StackDump finished.-----
+-----StackDump called.-----
+hello, world
+function
+255
+test_msg
+-----StackDump finished.-----
+lua: hello, world
+hello, world!
+***lua is go to call StackDump.***
+-----StackDump called.-----
+-----StackDump finished.-----
+***lua finished StackDump ***
+-----StackDump called.-----
+hello, world
+255
+test_msg
+-----StackDump finished.-----
+hello, world
+-----StackDump called.-----
+hello, world
+255
+test_msg
+-----StackDump finished.-----
+*/
+```
+从结果中可以看到，看起来参数都是L，但是实际栈里的东西不一样。lua进行打印的时候，由于lua调用c函数没有给c参数。
+所以，private local stack当中没有任何参数。实际中没有打出任何东西。
+这点还挺神奇的，虽然是同一个参数，但是关联的确实是不同的栈。
+
 ## demo-02
 - lua热更新
 做了热更新的实验，有如下结论
