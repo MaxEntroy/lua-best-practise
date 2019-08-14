@@ -5,6 +5,7 @@ end
 
 function _M.main(arg)
     print("lua: "..arg)
+    CFoo()
     return arg
 end
 

@@ -10,10 +10,17 @@ extern "C" {
 
 #include <gflags/gflags.h>
 
+#include "include/lua_lib.h"
+
 DEFINE_string(init_path, "", "lua init script");
 DEFINE_string(script_path, "", "the lua script path" );
 
-void Driver(lua_State*& L, const std::string& lua_script) {
+void Init(lua_State* L) {
+    lua_pushcfunction(L, Foo);
+    lua_setglobal(L, "CFoo");
+}
+
+void Driver(lua_State* L, const std::string& lua_script) {
     luaL_dofile(L, lua_script.c_str());
 
     lua_getglobal(L, "SetScriptPath");
@@ -36,6 +43,7 @@ int main(int argc, char* argv[]) {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
 
+    Init(L);
     Driver(L, FLAGS_init_path);
 
     lua_close(L);
