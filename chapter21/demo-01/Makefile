@@ -1,4 +1,4 @@
-INC_DIR:=./include
+INC_DIR:=./inc
 SRC_DIR:=./src
 EXE_DIR:=./bin
 
