@@ -66,6 +66,13 @@ void lua_pushcfunction (lua_State *L, lua_CFunction f);
 // Any function to be callable by Lua must follow the correct protocol to receive its parameters
 // and return its results
 typedef int (*lua_CFunction) (lua_State *L);
+
+
+void lua_register (lua_State *L, const char *name, lua_CFunction f);
+// Sets the C function f as the new value of global name。It is defined as a macro。
+#define lua_register(L, n, f)
+ (lua_pushcfunction(L, f), lua_setglobal(L, n))
+
 ```
 
 ## demo-01
@@ -245,3 +252,23 @@ test_msg
 所以，private local stack当中没有任何参数。实际中没有打出任何东西。
 这点还挺神奇的，虽然是同一个参数，但是关联的确实是不同的栈。
 
+## demo-03
+说几点感受
+- 常规的c函数，没有返回多个值的能力
+- private local stack，前面提到的清空栈，是对于反馈结果而言，因为参数会在下面，所以最后清空的是参数
+```c
+// 打出来的结果
+// 1,2,3,是参数
+// 6,2是返回值
+// 参数和返回值的对应顺序都是先入栈/出栈的参数从左侧向右进行匹配
+lua: c_to_lua_req_arg
+-----StackDump called.-----
+2
+6
+3
+2
+1
+-----StackDump finished.-----
+sum: 6.0, avg: 2.0
+c: lua_to_c_response
+```
