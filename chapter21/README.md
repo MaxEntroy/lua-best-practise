@@ -29,7 +29,7 @@ void lua_setglobal (lua_State *L, const char *name);
 
 -- 这个操作会入栈
 -- 这个操作的意义在于，table这个数据结构在c里面并没有，所以赋予c可以产生lua table的能力，送入栈。
--- 然后从栈种到lua变量
+-- 然后从栈中到lua变量
 -- 其余变量，c与lua都有对应。比如number,string
 void lua_newtable (lua_State *L);
 
@@ -56,7 +56,19 @@ Lua function,a C function called by Lua can also return many results
 
 显然，**Any other value in the stack below the results will be properly discarded by Lua**所提到的stack，是private local stack，不是全局栈
 
-## demo-02
+- capi
+```c
+// Pushes a C function onto the stack 。 This function receives a pointer to a C function and
+// pushes onto the stack a Lua value of type function that,when called,invokes the corresponding
+// C function
+void lua_pushcfunction (lua_State *L, lua_CFunction f);
+
+// Any function to be callable by Lua must follow the correct protocol to receive its parameters
+// and return its results
+typedef int (*lua_CFunction) (lua_State *L);
+```
+
+## demo-01
 - lua热更新
 做了热更新的实验，有如下结论
 1.如果lua重启，会重新加载库。此时的库里面，并没有之前代码中```require "xx.lua"```的模块。所以，如果服务重启，package.loaded肯定是会被重新加载的。
