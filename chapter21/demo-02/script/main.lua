@@ -3,9 +3,17 @@ local _M = {}
 function _M.init()
 end
 
+-- test c functions
+local function TestCFoo()
+    CFoo()
+end
+--
+
 function _M.main(arg)
     print("lua: "..arg)
-    CFoo()
+
+    TestCFoo()
+
     return arg
 end
 
