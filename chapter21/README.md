@@ -21,7 +21,7 @@ lua可以调用c函数，并不意味着可以调用所有的c函数。后者需
 
 #### lua访问c入栈值
 
-- API
+- CAPI
 
 ```lua
 -- 这个操作会出栈 
@@ -56,7 +56,7 @@ Lua function,a C function called by Lua can also return many results
 
 显然，**Any other value in the stack below the results will be properly discarded by Lua**所提到的stack，是private local stack，不是全局栈
 
-- capi
+- CAPI
 ```c
 // Pushes a C function onto the stack 。 This function receives a pointer to a C function and
 // pushes onto the stack a Lua value of type function that,when called,invokes the corresponding
