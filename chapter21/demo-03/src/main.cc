@@ -19,6 +19,8 @@ DEFINE_string(script_path, "", "the lua script path" );
 void Init(lua_State* L) {
     lua_pushcfunction(L, Foo);
     lua_setglobal(L, "CFoo");
+
+    lua_register(L, "CSumAndAver", SumAndAver);
 }
 
 void Driver(lua_State* L, const std::string& lua_script) {

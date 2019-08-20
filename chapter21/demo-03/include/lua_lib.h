@@ -9,4 +9,6 @@ extern "C" {
 
 int Foo(lua_State* L);
 
+int SumAndAver(lua_State* L);
+
 #endif
