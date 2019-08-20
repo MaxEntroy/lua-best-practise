@@ -73,7 +73,41 @@ void lua_register (lua_State *L, const char *name, lua_CFunction f);
 #define lua_register(L, n, f)
  (lua_pushcfunction(L, f), lua_setglobal(L, n))
 
+
+ // 表相关API汇总
+// Creates a new empty table and pushes it onto the stack. Parameter narr is a hint for how many elements the table will have as a sequence; 
+// parameter nrec is a hint for how many other elements the table will have. Lua may use these hints to preallocate memory for the new table. 
+// This preallocation is useful for performance when you know in advance how many elements the table will have. Otherwise you can use the 
+// function lua_newtable.
+// 1.这个操作有入栈行为
+// 2.narr和nrec分别制定该table的array和hash部分的预分配
+ void lua_createtable (lua_State *L, int narr, int nrec);
+#define lua_newtable(L) lua_createtable(L, 0, 0)
+
+// Creates a new table and registers there the functions in list l.
+// 1.从luaL_xxx中能看出，不是基础API
+void luaL_newlib (lua_State *L, const luaL_Reg l[]);
+#define luaL_newlib(L,l)  \
+  (luaL_checkversion(L), luaL_newlibtable(L,l), luaL_setfuncs(L,l,0))
+
+// Creates a new table with a size optimized to store all entries in the array l (but does not actually store them). 
+// It is intended to be used in conjunction with luaL_setfuncs 
+// It is implemented as a macro. The array l must be the actual array, not a pointer to it.
+// 1.这是个宏实现
+// 2.l必须是实际的数组地址，不能是指针
+// 3.底层table当做array实现
+// 4.一般和luaL_setfuncs一起用
+void luaL_newlibtable (lua_State *L, const luaL_Reg l[]);
+#define luaL_newlibtable(L,l)	\
+  lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
+
+// Registers all functions in the array l (see luaL_Reg) into the table on the top of the stack (below optional upvalues, see next).
+// When nup is not zero, all functions are created sharing nup upvalues, which must be previously pushed on the stack on top of the library table. These values are popped from the stack after the registration.
+void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup);
 ```
+
+参考
+[lua 原生api解读](https://abaojin.github.io/2017/02/22/lua-native-api/)
 
 ## demo-01
 - lua热更新
