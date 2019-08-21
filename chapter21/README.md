@@ -102,7 +102,8 @@ void luaL_newlibtable (lua_State *L, const luaL_Reg l[]);
   lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
 
 // Registers all functions in the array l (see luaL_Reg) into the table on the top of the stack (below optional upvalues, see next).
-// When nup is not zero, all functions are created sharing nup upvalues, which must be previously pushed on the stack on top of the library table. These values are popped from the stack after the registration.
+// When nup is not zero, all functions are created sharing nup upvalues, which must be previously pushed on the stack on top of the library table. 
+// These values are popped from the stack after the registration.
 void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup);
 ```
 
