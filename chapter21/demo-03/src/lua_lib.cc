@@ -24,4 +24,15 @@ int SumAndAver(lua_State* L) {
     lua_Number avg = sum / n;
     lua_pushnumber(L, sum);
     lua_pushnumber(L, avg);
-    return 2; }
+    return 2;
+}
+
+int GetStudentInfo(lua_State* L) {
+    std::map<int, Student> stu_info_table;
+    MakeStudentInfo(stu_info_table);
+
+    return 1;
+}
+
+void MakeStudentInfo(std::map<int, Student>& stu_info_table) {
+}

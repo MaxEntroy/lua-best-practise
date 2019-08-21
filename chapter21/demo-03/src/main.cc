@@ -21,8 +21,12 @@ void Init(lua_State* L) {
     lua_setglobal(L, "CFoo");
 
     lua_register(L, "CSumAndAver", SumAndAver);
+
+    lua_register(L, "CGetStudentInfo", GetStudentInfo);
 }
 
+// TODO:
+// 1.lua_pcall 异常信息
 void Driver(lua_State* L, const std::string& lua_script) {
     luaL_dofile(L, lua_script.c_str());
 
