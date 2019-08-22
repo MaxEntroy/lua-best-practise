@@ -19,7 +19,7 @@ local function TestCGetStudentInfo()
     
     for id, info in pairs(stu_info_table) do
         print("id: "..id)
-        for k,v in pairs() do
+        for k,v in pairs(info) do
             print(k,v)
         end
         print("----------------")
@@ -32,7 +32,8 @@ function _M.main(arg)
     print("lua: "..arg)
 
     -- TestCFoo()
-    TestCSumAndAver()
+    -- TestCSumAndAver()
+    TestCGetStudentInfo()
 
     local response = "lua_to_c_response"
     return response

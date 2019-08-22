@@ -19,6 +19,7 @@ struct Student {
     std::string stu_name;
 
     Student() : stu_id(-1) {}
+    Student(int id, const std::string& name) : stu_id(id), stu_name(name) {}
 };
 // input: 学生id列表
 // output: 学生id-信息 hash table

@@ -105,6 +105,44 @@ void luaL_newlibtable (lua_State *L, const luaL_Reg l[]);
 // When nup is not zero, all functions are created sharing nup upvalues, which must be previously pushed on the stack on top of the library table. 
 // These values are popped from the stack after the registration.
 void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup);
+
+// 补充一组CAPI
+// 用来c->lua 遍历table时使用
+/*
+@@ The following macros supply trivial compatibility for some
+** changes in the API. The macros themselves document how to
+** change your code to avoid using them.
+*/
+#define lua_strlen(L,i)		lua_rawlen(L, (i))
+
+#define lua_objlen(L,i)		lua_rawlen(L, (i))
+
+// Returns the raw "length" of the value at the given index: for strings, this is the string length; 
+// for tables, this is the result of the length operator ('#') with no metamethods; 
+// for userdata, this is the size of the block of memory allocated for the userdata; for other values, it is 0.
+size_t lua_rawlen (lua_State *L, int index);
+
+int lua_next (lua_State *L, int index);
+/*
+Pops a key from the stack, and pushes a key–value pair from the table at the given index (the "next" pair after the given key). 
+If there are no more elements in the table, then lua_next returns 0 (and pushes nothing).
+
+A typical traversal looks like this:
+
+     // table is in the stack at index 't'
+     lua_pushnil(L);  first key 
+     while (lua_next(L, t) != 0) {
+       // uses 'key' (at index -2) and 'value' (at index -1)
+       printf("%s - %s\n",
+              lua_typename(L, lua_type(L, -2)),
+              lua_typename(L, lua_type(L, -1)));
+       // removes 'value'; keeps 'key' for next iteration
+       lua_pop(L, 1);
+     }
+While traversing a table, do not call lua_tolstring directly on a key, unless you know that the key is actually a string. Recall that lua_tolstring may change the value at the given index; this confuses the next call to lua_next.
+
+See function next for the caveats of modifying the table during its traversal.
+*/
 ```
 
 参考
@@ -307,3 +345,15 @@ lua: c_to_lua_req_arg
 sum: 6.0, avg: 2.0
 c: lua_to_c_response
 ```
+
+整体来说，demo-03的接口设计并不好。
+主要尝试了一下知识点：
+- c遍历lua table
+    - 如何获得lua table的大小
+- c返回多级table
+- map用pair数组初始化
+
+接口设计不好的问题，我在demo-04当中优化
+
+参考<br>
+[Lua C Api lua_gettable 、lua_settable 、lua_next 使用详解](https://www.cnblogs.com/chuanwei-zhang/p/4077247.html)<br>
