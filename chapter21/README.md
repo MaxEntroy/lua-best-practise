@@ -507,6 +507,8 @@ Aborted (core dumped)
 
 结论,c->lua
 - 必须使用lua_pcall
+    - 因为使用lua_call如果异常,会调用panic,以及abort函数
+    - 宿主退出会影响到整个服务.没有理由,一个进程/线程异常,把其他正常进程/线程高挂
 - 对于异常逻辑和正常逻辑分开处理
 - 应该使用err_func来跟踪更多信息
 
