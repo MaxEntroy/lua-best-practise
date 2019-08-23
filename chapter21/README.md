@@ -357,3 +357,183 @@ c: lua_to_c_response
 
 参考<br>
 [Lua C Api lua_gettable 、lua_settable 、lua_next 使用详解](https://www.cnblogs.com/chuanwei-zhang/p/4077247.html)<br>
+
+## demo-04
+本例采用了更合理的设计。这个设计本身没什么好说的。
+但是，本例其实涉及到拿去正排信息的问题，会牵扯出来两个很重要的问题。
+- c->lua, lua如果error，怎么异常处理。对应到，lua当中不判断拿到的正排是否存在
+- lua->c， c如果error，怎么异常处理。对应到，c当中检索正排的过程出问题。比如map不判断key是否存在
+
+1.对于lua error的异常处理
+```lua
+local function TestCGetStudentInfo()
+    local stu_id_list = {101, 102, 103, 107}
+    for _, id in ipairs(stu_id_list) do
+        print("id:---------"..id)
+        -- 107 stu_info不存在，目前cpp做了异常逻辑，返回nil
+        local stu_info = CGetStudentInfo(id)
+        for k, v in pairs(stu_info) do
+            print(k,v)
+        end
+        --[[
+        if stu_info then
+            for k, v in pairs(stu_info) do
+                print(k.."->"..v)
+            end
+        else
+            print("No stu_info.")
+        end
+        ]]
+    end
+end
+--[[
+执行结果：
+1.lua error之后，后续的代码，lua以及c都不会继续执行。主要是c的流程会被打断。没有做到兼容。相当于把服务搞挂了
+lua: c_to_lua_req_arg
+id:---------101
+name	kang
+id	101
+id:---------102
+name	bruce
+id	102
+id:---------103
+name	jerry
+id	103
+id:---------107
+c: ...onal/lua-best-practise/chapter21/demo-04/script/main.lua:21: bad argument #1 to 'pairs' (table expected, got nil)    
+]]
+```
+根据lua_pcall文档，进行如下改造
+```cpp
+void Driver(lua_State* L, const std::string& lua_script) {
+    luaL_dofile(L, lua_script.c_str());
+
+    lua_getglobal(L, "SetScriptPath");
+    lua_pushstring(L, FLAGS_script_path.c_str());
+    lua_pcall(L, 1, 0, 0);
+
+    std::string test_msg = "test_msg";
+    lua_pushstring(L, test_msg.c_str());
+    int test_val = 255;
+    lua_pushinteger(L, test_val);
+
+    std::string req_arg = "c_to_lua_req_arg";
+    lua_getglobal(L, "DoTask");
+    lua_pushstring(L, req_arg.c_str());
+    int ret_code = lua_pcall(L, 1, 1, 0);
+    if(ret_code != 0) {
+        std::string err_msg = lua_tostring(L, -1);
+        std::cerr << "lua_pcall error, ret_code:  " << ret_code << ", err_msg: " << err_msg << std::endl;
+    }
+    else{
+        std::string ret = lua_tostring(L, -1);
+        std::cout << "c: " << ret << std::endl;
+    }
+
+    std::cout << "Driver is done." << std::endl;
+    lua_settop(L, 0);
+}
+/*
+服务正常完成，打出异常信息
+当然，其实不这么写，服务也不会挂掉。因为用的是lua_pcall进行调用。
+本身不会挂掉
+lua: c_to_lua_req_arg
+id:---------101
+id	101
+name	kang
+id:---------102
+id	102
+name	bruce
+id:---------103
+id	103
+name	jerry
+id:---------107
+lua_pcall error, ret_code:  2, err_msg: ...onal/lua-best-practise/chapter21/demo-04/script/main.lua:21: bad argument #1 to 'pairs' (table expected, got nil)
+Driver is done.
+*/
+```
+
+我们再来看看lua_call()调用的结果
+```cpp
+void Driver(lua_State* L, const std::string& lua_script) {
+    luaL_dofile(L, lua_script.c_str());
+
+    lua_getglobal(L, "SetScriptPath");
+    lua_pushstring(L, FLAGS_script_path.c_str());
+    lua_pcall(L, 1, 0, 0);
+
+    std::string test_msg = "test_msg";
+    lua_pushstring(L, test_msg.c_str());
+    int test_val = 255;
+    lua_pushinteger(L, test_val);
+
+    std::string req_arg = "c_to_lua_req_arg";
+    lua_getglobal(L, "DoTask");
+    lua_pushstring(L, req_arg.c_str());
+    lua_call(L, 1, 1);
+    // int ret_code = lua_pcall(L, 1, 1, 0);
+    // if(ret_code != 0) {
+    //     std::string err_msg = lua_tostring(L, -1);
+    //     std::cerr << "lua_pcall error, ret_code:  " << ret_code << ", err_msg: " << err_msg << std::endl;
+    // }
+    // else{
+        std::string ret = lua_tostring(L, -1);
+        std::cout << "c: " << ret << std::endl;
+    // }
+
+    std::cout << "Driver is done." << std::endl;
+    lua_settop(L, 0);
+}
+/*
+这个结果就很清晰了.
+如果c->lua,但是lua挂了.如果使用lua_call,cpp也会abort
+但是,lua_pcall不会.
+上面的做法,只是把异常信息,与正常逻辑区别开来,用更合理的方式体现.但是cpp本身并不会挂掉.
+lua: c_to_lua_req_arg
+id:---------101
+id	101
+name	kang
+id:---------102
+id	102
+name	bruce
+id:---------103
+id	103
+name	jerry
+id:---------107
+PANIC: unprotected error in call to Lua API (...onal/lua-best-practise/chapter21/demo-04/script/main.lua:21: bad argument #1 to 'pairs' (table expected, got nil))
+Aborted (core dumped)
+*/
+```
+
+结论,c->lua
+- 必须使用lua_pcall
+- 对于异常逻辑和正常逻辑分开处理
+- 应该使用err_func来跟踪更多信息
+
+```cpp
+int lua_pcall (lua_State *L, int nargs, int nresults, int msgh);
+以保护模式调用一个函数。
+
+nargs 和 nresults 的含义与 lua_call 中的相同。 如果在调用过程中没有发生错误， lua_pcall 的行为和 lua_call 完全一致。 但是，如果有错误发生的话， lua_pcall 会捕获它， 然后把唯一的值（错误消息）压栈，然后返回错误码。 同 lua_call 一样， lua_pcall 总是把函数本身和它的参数从栈上移除。
+
+如果 msgh 是 0 ， 返回在栈顶的错误消息就和原始错误消息完全一致。 否则， msgh 就被当成是 错误处理函数 在栈上的索引位置。 （在当前的实现里，这个索引不能是伪索引。） 在发生运行时错误时， 这个函数会被调用而参数就是错误消息。 错误处理函数的返回值将被 lua_pcall 作为错误消息返回在堆栈上。
+
+典型的用法中，错误处理函数被用来给错误消息加上更多的调试信息， 比如栈跟踪信息。 这些信息在 lua_pcall 返回后， 由于栈已经展开，所以收集不到了。
+
+lua_pcall 函数会返回下列常数 （定义在 lua.h 内）中的一个：
+
+LUA_OK (0): 成功。
+LUA_ERRRUN: 运行时错误。
+LUA_ERRMEM: 内存分配错误。对于这种错，Lua 不会调用错误处理函数。
+LUA_ERRERR: 在运行错误处理函数时发生的错误。
+LUA_ERRGCMM: 在运行 __gc 元方法时发生的错误。 （这个错误和被调用的函数无关。）
+
+/* thread status */
+#define LUA_OK		0
+#define LUA_YIELD	1
+#define LUA_ERRRUN	2
+#define LUA_ERRSYNTAX	3
+#define LUA_ERRMEM	4
+#define LUA_ERRGCMM	5
+#define LUA_ERRERR	6
+```
