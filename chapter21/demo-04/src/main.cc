@@ -42,11 +42,18 @@ void Driver(lua_State* L, const std::string& lua_script) {
     std::string req_arg = "c_to_lua_req_arg";
     lua_getglobal(L, "DoTask");
     lua_pushstring(L, req_arg.c_str());
-    lua_pcall(L, 1, 1, 0);
 
-    std::string ret = lua_tostring(L, -1);
-    std::cout << "c: " << ret << std::endl;
+    int ret_code = lua_pcall(L, 1, 1, 0);
+    if(ret_code != 0) {
+        std::string err_msg = lua_tostring(L, -1);
+        std::cerr << "lua_pcall error, ret_code:  " << ret_code << ", err_msg: " << err_msg << std::endl;
+    }
+    else{
+        std::string ret = lua_tostring(L, -1);
+        std::cout << "c: " << ret << std::endl;
+    }
 
+    std::cout << "Driver is done." << std::endl;
     lua_settop(L, 0);
 }
 
