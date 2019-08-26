@@ -150,18 +150,27 @@ See function next for the caveats of modifying the table during its traversal.
 #### lua debug
 这一小节,是由demo-04引起的问题.
 即如何写成安全的代码,支持异常处理的功能,并且能提供更多的stack traceback信息。
-为什么要这么做？
+
 - lua_pcall的思考
     - lua_pcall支持message handler
     - Such information cannot be gathered after the return of lua_pcall, since by then the stack has unwound.
 
-即，lua_pcall单独支持一个异常处理函数(error message handler)，这么做是因为，lua_pcall本身不收集stack traceback信息，所以，只能打印出一条错误信息。但是，更多的上下文信息，无法支持。
+即，lua_pcall单独支持一个异常处理函数(error message handler)，这么设计是因为，lua_pcall本身不收集stack traceback信息，所以，只能打印出一条错误信息。但是，如果更多的上下文信息，则无法支持。
 比如，一个函数总是被其他模块调用，大部分时间不出错。但是，有些问题总复现。此时如何能判断出当时的调用信息呢？
 所以，需要stack traceback信息。(cloud wu认为总是需要stack traceback不是好代码)
 
 - lua debug
     - lua没有内置调试器
     - 但是lua支持了debug库，包括调试器需要的所有原语函数
+
+- lua_pcall的message_handler实现
+    - 借助lua debug
+    - 做在lua层的原因是，方便调整，否则在cpp层每次需要重新编译
+    - 调用
+        - 时机: lua_pcall在发生运行时错误时， 这个函数会被调用
+        - 参数: 需要自定义，默认会接受lua_pcall返回的错误消息
+        - 返回值: 需要自定义，返回值将被 lua_pcall 作为错误消息返回在堆栈上
+        - 写法：参数必须要拿到，因为这个有提示作用。至于返回值，可以直接打印不返回。但，此时在宿主中不要再获取，因为没有返回
 
 参考<br>
 [Lua debug](https://www.runoob.com/lua/lua-debug.html)<br>
@@ -527,7 +536,7 @@ Aborted (core dumped)
 结论,c->lua
 - 必须使用lua_pcall
     - 因为使用lua_call如果异常,会调用panic,以及abort函数
-    - 宿主退出会影响到整个服务.没有理由,一个进程/线程异常,把其他正常进程/线程高挂
+    - 宿主退出会影响到整个服务.没有理由,一个进程/线程异常,把其他正常进程/线程搞挂
 - 对于异常逻辑和正常逻辑分开处理
 - 应该使用err_func来跟踪更多信息
 
