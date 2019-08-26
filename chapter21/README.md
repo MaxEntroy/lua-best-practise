@@ -567,3 +567,65 @@ LUA_ERRGCMM: 在运行 __gc 元方法时发生的错误。 （这个错误和被
 #define LUA_ERRGCMM	5
 #define LUA_ERRERR	6
 ```
+
+lua traceback实现
+```lua
+-- 参数: lua_pcall异常时，返回的错误消息。这个参数默认会传递给err_handler
+-- 返回值：错误处理函数的返回值会被lua_pcall作为错误消息返回在stack上
+-- ps:返回值，不返回也可以，但是宿主不能获取。为了避免这个问题，我还是返回了
+function LuaTraceback(msg)
+    print("Lua Error: "..msg)
+    print(debug.traceback())
+    return msg
+end
+```
+
+需要在cpp中注册
+```cpp
+void Driver(lua_State* L, const std::string& lua_script) {
+    luaL_dofile(L, lua_script.c_str());
+    int top = lua_gettop(L);
+
+    lua_getglobal(L, "LuaTraceback");
+    if(lua_type(L, -1) != LUA_TFUNCTION) {
+        std::cerr << "LuaTraeback not found." << std::endl;
+        lua_settop(L, top);
+        return;
+    }
+    int err_handler_index = lua_gettop(L);
+
+    lua_getglobal(L, "SetScriptPath");
+    if(lua_type(L, -1) != LUA_TFUNCTION) {
+        std::cerr << "SetScriptPath not found." << std::endl;
+        lua_settop(L, top);
+        return;
+    }
+    lua_pushstring(L, FLAGS_script_path.c_str());
+    int ret_code = lua_pcall(L, 1, 0, err_handler_index);
+    if(ret_code != 0) {
+        std::cerr << "lua_pcall error, ret_code:  " << ret_code << std::endl;
+        lua_settop(L, top);
+        return;
+    }
+
+    std::string req_arg = "c_to_lua_req_arg";
+    lua_getglobal(L, "DoTask");
+    if(lua_type(L, -1) != LUA_TFUNCTION) {
+        std::cerr << "DoTask not found." << std::endl;
+        lua_settop(L, top);
+        return;
+    }
+    lua_pushstring(L, req_arg.c_str());
+    ret_code = lua_pcall(L, 1, 1, err_handler_index);
+    if(ret_code != 0) {
+        std::cerr << "lua_pcall error, ret_code:  " << ret_code << std::endl;
+        lua_settop(L, top);
+        return;
+    }
+
+    std::string ret = lua_tostring(L, -1);
+    std::cout << "c: " << ret << std::endl;
+    std::cout << "Driver is done." << std::endl;
+    lua_settop(L, top);
+}
+```
