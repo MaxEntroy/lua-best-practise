@@ -629,3 +629,77 @@ void Driver(lua_State* L, const std::string& lua_script) {
     lua_settop(L, top);
 }
 ```
+
+对于c中异常的处理，我们先来看一段代码
+```cpp
+// 一下cpp代码没有判断map key是否存在
+int GetStudentInfo(lua_State* L) {
+    std::map<int, Student> stu_info_table;
+    MakeStudentInfo(stu_info_table);
+
+    int id = lua_tointeger(L, -1);
+    const Student& s = stu_info_table[id];
+    lua_createtable(L, 0, 2);
+    lua_pushinteger(L, s.stu_id);
+    lua_setfield(L, -2, "id");
+    lua_pushstring(L, (s.stu_name).c_str());
+    lua_setfield(L, -2, "name");
+
+    return 1;
+}
+
+void MakeStudentInfo(std::map<int, Student>& stu_info_table) {
+    std::pair<int, Student> stu_pair_list[] = {
+        std::make_pair(101, Student(101, "kang")),
+        std::make_pair(102, Student(102, "bruce")),
+        std::make_pair(103, Student(103, "jerry")),
+        std::make_pair(104, Student(104, "terry")),
+        std::make_pair(105, Student(105, "jaime")),
+    };
+
+    stu_info_table = std::map<int, Student>(stu_pair_list, stu_pair_list + sizeof(stu_pair_list)/sizeof(stu_pair_list[0]));
+}
+```
+
+lua当中请求了key不存在的情形
+```lua
+local function TestCGetStudentInfo()
+    local stu_id_list = {101, 102, 103, 107}
+    for _, id in ipairs(stu_id_list) do
+        print("id:---------"..id)
+        local stu_info = CGetStudentInfo(id)
+        --[[
+        for k, v in pairs(stu_info) do
+            print(k,v)
+        end
+        ]]
+        if stu_info then
+            for k, v in pairs(stu_info) do
+                print(k.."->"..v)
+            end
+        else
+            print("No stu_info.")
+        end
+    end
+end
+--[[
+lua: c_to_lua_req_arg
+id:---------101
+id->101
+name->kang
+id:---------102
+id->102
+name->bruce
+id:---------103
+id->103
+name->jerry
+id:---------107
+id->-1
+name->
+c: lua_to_c_response
+Driver is done.
+]]
+```
+分析上面的结果，为什么107没有报异常？
+这其实跟map的机制有关系，如果访问map当中某个不存在的key。map会自动加入这一项，value采用该类型默认值。
+上面的代码我们可以看到，Student其实采用了默认值。
