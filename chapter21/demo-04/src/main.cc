@@ -29,36 +29,52 @@ void Init(lua_State* L) {
 // 1.lua_pcall 异常信息
 void Driver(lua_State* L, const std::string& lua_script) {
     luaL_dofile(L, lua_script.c_str());
+    int top = lua_gettop(L);
+
+    lua_getglobal(L, "LuaTraceback");
+    if(lua_type(L, -1) != LUA_TFUNCTION) {
+        std::cerr << "LuaTraeback not found." << std::endl;
+        lua_settop(L, top);
+        return;
+    }
+    int err_handler_index = lua_gettop(L);
 
     lua_getglobal(L, "SetScriptPath");
+    if(lua_type(L, -1) != LUA_TFUNCTION) {
+        std::cerr << "SetScriptPath not found." << std::endl;
+        lua_settop(L, top);
+        return;
+    }
     lua_pushstring(L, FLAGS_script_path.c_str());
-    lua_pcall(L, 1, 0, 0);
-
-    std::string test_msg = "test_msg";
-    lua_pushstring(L, test_msg.c_str());
-    int test_val = 255;
-    lua_pushinteger(L, test_val);
+    int ret_code = lua_pcall(L, 1, 0, err_handler_index);
+    if(ret_code != 0) {
+        std::cerr << "lua_pcall error, ret_code:  " << ret_code << std::endl;
+        lua_settop(L, top);
+        return;
+    }
 
     std::string req_arg = "c_to_lua_req_arg";
     lua_getglobal(L, "DoTask");
+    if(lua_type(L, -1) != LUA_TFUNCTION) {
+        std::cerr << "DoTask not found." << std::endl;
+        lua_settop(L, top);
+        return;
+    }
     lua_pushstring(L, req_arg.c_str());
-
-    int ret_code = lua_pcall(L, 1, 1, 0);
+    ret_code = lua_pcall(L, 1, 1, err_handler_index);
     if(ret_code != 0) {
-        std::string err_msg = lua_tostring(L, -1);
-        std::cerr << "lua_pcall error, ret_code:  " << ret_code << ", err_msg: " << err_msg << std::endl;
-    }
-    else{
-        std::string ret = lua_tostring(L, -1);
-        std::cout << "c: " << ret << std::endl;
+        std::cerr << "lua_pcall error, ret_code:  " << ret_code << std::endl;
+        lua_settop(L, top);
+        return;
     }
 
+    std::string ret = lua_tostring(L, -1);
+    std::cout << "c: " << ret << std::endl;
     std::cout << "Driver is done." << std::endl;
-    lua_settop(L, 0);
+    lua_settop(L, top);
 }
 
-int main(int argc, char* argv[]) {
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+int main(int argc, char* argv[]) { gflags::ParseCommandLineFlags(&argc, &argv, true);
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
 

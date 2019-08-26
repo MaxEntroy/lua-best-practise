@@ -18,6 +18,7 @@ local function TestCGetStudentInfo()
     for _, id in ipairs(stu_id_list) do
         print("id:---------"..id)
         local stu_info = CGetStudentInfo(id)
+        
         for k, v in pairs(stu_info) do
             print(k,v)
         end
