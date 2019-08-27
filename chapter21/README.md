@@ -197,6 +197,74 @@ See function next for the caveats of modifying the table during its traversal.
 
 那么，层次应该就变成这样。主业务代码写入lua_CFunction。但是，上层还是需要宿主来调用。这个宿主的逻辑就会简单可控很多。我们在这个层面保证Lua CAPI的正确使用要容易的多。
 
+我们来看lua解释器的例子
+```c
+/*
+** Main body of stand-alone interpreter (to be called in protected mode).
+** Reads the options and handles them all.
+*/
+static int pmain (lua_State *L) {
+  int argc = (int)lua_tointeger(L, 1);
+  char **argv = (char **)lua_touserdata(L, 2);
+  int script;
+  int args = collectargs(argv, &script);
+  luaL_checkversion(L);  /* check that interpreter has correct version */
+  if (argv[0] && argv[0][0]) progname = argv[0];
+  if (args == has_error) {  /* bad arg? */
+    print_usage(argv[script]);  /* 'script' has index of bad arg. */
+    return 0;
+  }
+  if (args & has_v)  /* option '-v'? */
+    print_version();
+  if (args & has_E) {  /* option '-E'? */
+    lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
+    lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
+  }
+  luaL_openlibs(L);  /* open standard libraries */
+  createargtable(L, argv, argc, script);  /* create table 'arg' */
+  if (!(args & has_E)) {  /* no option '-E'? */
+    if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
+      return 0;  /* error running LUA_INIT */
+  }
+  if (!runargs(L, argv, script))  /* execute arguments -e and -l */
+    return 0;  /* something failed */
+  if (script < argc &&  /* execute main script (if there is one) */
+      handle_script(L, argv + script) != LUA_OK)
+    return 0;
+  if (args & has_i)  /* -i option? */
+    doREPL(L);  /* do read-eval-print loop */
+  else if (script == argc && !(args & (has_e | has_v))) {  /* no arguments? */
+    if (lua_stdin_is_tty()) {  /* running in interactive mode? */
+      print_version();
+      doREPL(L);  /* do read-eval-print loop */
+    }
+    else dofile(L, NULL);  /* executes stdin as a file */
+  }
+  lua_pushboolean(L, 1);  /* signal no errors */
+  return 1;
+}
+```
+很明显，主逻辑被写到lua_CFunction当中，我们再来看真正的主函数。
+```c
+int main (int argc, char **argv) {
+  int status, result;
+  lua_State *L = luaL_newstate();  /* create state */
+  if (L == NULL) {
+    l_message(argv[0], "cannot create state: not enough memory");
+    return EXIT_FAILURE;
+  }
+  lua_pushcfunction(L, &pmain);  /* to call 'pmain' in protected mode */
+  lua_pushinteger(L, argc);  /* 1st argument */
+  lua_pushlightuserdata(L, argv); /* 2nd argument */
+  status = lua_pcall(L, 2, 1, 0);  /* do the call */
+  result = lua_toboolean(L, -1);  /* get result */
+  report(L, status);
+  lua_close(L);
+  return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+```
+主逻辑写入lua_CFunction，但是上层还是需要一个简单的宿主来调用。但是，此时的宿主由于没有遍布Lua CAPI。所以就非常好控制了，不容易出错。
+
 参考<br>
 [Lua C API 的正确用法](https://blog.codingnow.com/2015/05/lua_c_api.html)<br>
 
