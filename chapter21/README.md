@@ -185,9 +185,9 @@ See function next for the caveats of modifying the table during its traversal.
 
 对于Lua CAPI的异常捕获，正确的做法是**当你调用Lua CAPI时，应该确保在本次调用的层次之上，处于某次lua_pcall或者lua_resume当中**
 
-即，lua_pcall去调用某个过程，在这个过程种有对于Lua CAPI的调用。常见的case有一下两种：
-- C编写Lua库，这种情况通常不用考虑。因为调用Lua CAPI的层次都在都在lua调用之下，而lua调用，又在lua_pcall调用之下
-- Lua CAPI遍布在宿主程序中，因为宿主程序不在lua_pcall调用之下，这种case是容易出问题的
+即，lua_pcall去调用某个过程，在这个过程中有Lua CAPI的调用。常见的case有以下两种：
+- C编写Lua库。这种情况通常不用考虑。因为调用Lua CAPI的层次都在都在lua调用之下，而lua调用，又在lua_pcall调用之下
+- Lua CAPI遍布在宿主程序中。因为宿主程序不在lua_pcall调用之下，这种case是容易出问题的
 
 对于第二种case，云风给了建议：
 >完善的做法是，你应该把你的业务逻辑写到一个 lua_CFunction 中，然后用 lua_pcall 去调用它。而这个代码块的参数则应该用 void * 通过 lua_pushlightuserdata 来传递
@@ -195,7 +195,7 @@ See function next for the caveats of modifying the table during its traversal.
 显然，这么做是把宿主写成lua_CFunction之后，push_cfunction进lua栈。此时当做一个lua函数去调用的。以前我想不通这点是因为，我理解只有lua_getglobal()一个全局lua函数来调用。
 没想到，lua_pushcfunction把一个c function推入lua 栈里，他也就变成了一个lua function,可以再次被调用。
 
-那么，层次应该就变成这样。主业务代码写入lua_CFunction。但是，上层还是需要宿主，来调用。这个宿主的逻辑就会简单可控很多。我们在这个层面保证Lua CAPI的正确使用要容易的多。
+那么，层次应该就变成这样。主业务代码写入lua_CFunction。但是，上层还是需要宿主来调用。这个宿主的逻辑就会简单可控很多。我们在这个层面保证Lua CAPI的正确使用要容易的多。
 
 参考<br>
 [Lua C API 的正确用法](https://blog.codingnow.com/2015/05/lua_c_api.html)<br>
