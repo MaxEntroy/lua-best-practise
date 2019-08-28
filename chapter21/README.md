@@ -262,8 +262,37 @@ int main (int argc, char **argv) {
   lua_close(L);
   return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+static int report (lua_State *L, int status) {
+  if (status != LUA_OK) {
+    const char *msg = lua_tostring(L, -1);
+    l_message(progname, msg);
+    lua_pop(L, 1);  /* remove message */
+  }
+  return status;
+}
+/* 这里分析下这段代码
+整个流程很清晰，说一下错误处理的过程。
+为什么需要status和result两个返回信息。
+1.status用来标识线程的运行状态，具体返回码可参考lua_pcall返回值
+2.result用来表示内部逻辑的状态。
+举个例子，我这段代码计算1-100内四则运算，但是你给我一个区间之外的参数。
+运行状态上来说，进步进行计算都不会运行错误，但是会有逻辑错误，这个状态需要result标识。
+
+总共会有3种状态：
+1.运行正确，逻辑正确
+2.运行正确，逻辑错误
+3.运行错误，逻辑也不可能正确
+前2种状态，status == LUA_OK,此时栈顶是用户推入的逻辑结果。
+result == lua_toboolean可以获得。
+report内部，不在执行。因为执行会发现，逻辑值无法转成char*
+第3种状态，运行错误，lua_pcall会把error object会被推入栈顶。通常是error message
+此时，result还是可以获得结果，因为字符串可以转成bool值
+不过，report此时可以正常工作。
+最后的结果，因为 status == LUA_OK && result，可以保证main函数返回结果的逻辑正确性。
+*/
 ```
 主逻辑写入lua_CFunction，但是上层还是需要一个简单的宿主来调用。但是，此时的宿主由于没有遍布Lua CAPI。所以就非常好控制了，不容易出错。
+
 
 参考<br>
 [Lua C API 的正确用法](https://blog.codingnow.com/2015/05/lua_c_api.html)<br>
