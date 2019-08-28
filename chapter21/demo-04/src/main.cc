@@ -74,7 +74,8 @@ void Driver(lua_State* L, const std::string& lua_script) {
     lua_settop(L, top);
 }
 
-int main(int argc, char* argv[]) { gflags::ParseCommandLineFlags(&argc, &argv, true);
+int main(int argc, char* argv[]) {
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
 
