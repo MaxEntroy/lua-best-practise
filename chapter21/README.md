@@ -293,6 +293,57 @@ report内部，不在执行。因为执行会发现，逻辑值无法转成char*
 ```
 主逻辑写入lua_CFunction，但是上层还是需要一个简单的宿主来调用。但是，此时的宿主由于没有遍布Lua CAPI。所以就非常好控制了，不容易出错。
 
+我们为止，我们总共写过两种相互调用代码
+- c->lua
+    - lua: 参数和返回值均无特殊写法，正常函数操作即可
+    - c(调用方): 宿主调用lua_pcall，提前把参数压栈，可调用lua函数压栈，指定参数和返回值个数，从栈中获取返回值
+- lua->c
+    - lua(调用方): 参数和返回值无特殊写法，正常函数操作即可
+    - c: 从栈中获取参数，把返回值压栈
+    - 并且需要进行注册，且满足lua_CFunction
+
+对于lua CAPI的正确写法，我们会碰到这么一种情形：
+- c->c
+    - c(宿主): 宿主调用lua_pcall，提前把参数压栈，可调用c函数压栈，指定参数和返回值，从栈中获取返回值
+    - c：此时的c，写法非常trick，是类似与lua->c时，c的方式。即，从栈种获取参数，把返回值压入栈中。并且要满足lua_CFunction
+    - c(宿主)承担的是c->lua当中的c，c(被调)承担的是lua->c当中的c。
+    - 多说一点，此种方式。lua_pcall当中nresults应当与c(被调用)返回值个数一致
+        - c(被掉)：返回值个数，之下的内容会被丢弃。
+        - lua_pcall: nresults的个数，只是打印栈中元素的个数(不好理解，看代码)
+
+```cpp
+static int pmain(lua_State* L) {
+    const std::string init_path = lua_tostring(L, 1);
+    const std::string script_path = lua_tostring(L, 2);
+
+    std::cout << init_path << std::endl;
+    std::cout << script_path << std::endl;
+
+    return 1; // 这个值控制栈中实际元素的个数，栈里目前有2个元素，返回1会丢弃1个元素
+}
+
+int main(int argc, char* argv[]) {
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    lua_State* L = luaL_newstate();
+    if(L == NULL) {
+        l_message(argv[0], "cannot create state: not enought memory");
+        return 1;
+    }
+
+    lua_pushcfunction(L, &pmain);
+    lua_pushstring(L, FLAGS_init_path.c_str());
+    lua_pushstring(L, FLAGS_script_path.c_str());
+    int status = lua_pcall(L, 2, 2, 0); // nresults控制栈中逻辑元素个数，此时逻辑值有2个，即lua_gettop(L) == 2，但是实际值只有1个，多于一个会填充Nil.
+    StackDump(L);
+
+    int result = 1;
+    if(status != LUA_OK) report(L, argv[0]);
+    else result = lua_tointeger(L, -1);
+    std::cout << "result: " << result << std::endl;
+    lua_close(L);
+    return (status == LUA_OK && result)?0:1;
+}
+```
 
 参考<br>
 [Lua C API 的正确用法](https://blog.codingnow.com/2015/05/lua_c_api.html)<br>
