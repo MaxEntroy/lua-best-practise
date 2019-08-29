@@ -74,7 +74,20 @@ void Driver(lua_State* L, const std::string& lua_script) {
     lua_settop(L, top);
 }
 
+static void report(lua_State* L, const std::string& pname) {
+    const std::string msg = lua_tostring(L, -1);
+    l_message(pname, msg);
+    lua_pop(L, 1);
+}
+
 static int pmain(lua_State* L) {
+    int result = 0;
+    const std::string init_path = lua_tostring(L, 1);
+    const std::string script_path = lua_tostring(L, 2);
+    std::cout << init_path << std::endl;
+    std::cout << script_path << std::endl;
+
+    lua_pushinteger(L, result);
     return 1;
 }
 
@@ -82,14 +95,20 @@ int main(int argc, char* argv[]) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
     lua_State* L = luaL_newstate();
     if(L == NULL) {
-        std::cerr << "main: can not create state, not enough memory" << std::endl;
+        l_message(argv[0], "cannot create state: not enought memory");
         return 1;
     }
 
     lua_pushcfunction(L, &pmain);
-    lua_pushstring(L, FLAGS_init_path);
-    lua_pushstring(L, FLAGS_script_path);
+    lua_pushstring(L, FLAGS_init_path.c_str());
+    lua_pushstring(L, FLAGS_script_path.c_str());
+    int status = lua_pcall(L, 2, 1, 0);
+
+    int result = 0;
+    if(status != LUA_OK) report(L, argv[0]);
+    else result = lua_tointeger(L, -1);
+    std::cout << "result: " << result << std::endl;
 
     lua_close(L);
-    return 0;
+    return (status == LUA_OK && result)?0:1;
 }

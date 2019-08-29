@@ -24,3 +24,10 @@ void StackDump(lua_State* L) {
     }
     std::cout << "-----StackDump finished.-----" << std::endl;
 }
+
+// Prints an error message, adding the program name in front of it
+// (if present)
+void l_message(const std::string& pname, const std::string& msg) {
+    if(pname.c_str()) lua_writestringerror("%s: ", pname.c_str());
+    lua_writestringerror("%s\n", msg.c_str());
+}
