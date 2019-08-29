@@ -74,20 +74,59 @@ void Driver(lua_State* L, const std::string& lua_script) {
     lua_settop(L, top);
 }
 
-static void report(lua_State* L, const std::string& pname) {
+static void Report(lua_State* L, const std::string& pname) {
     const std::string msg = lua_tostring(L, -1);
     l_message(pname, msg);
     lua_pop(L, 1);
 }
 
+static void HandleLuainit(lua_State* L, const std::string& init_path) {
+    luaL_dofile(L, init_path.c_str());
+
+    lua_register(L, "CGetStudentInfo", GetStudentInfo);
+}
+
+static int HandleLuascript(lua_State* L, const std::string& script_path) {
+    lua_getglobal(L, "SetScriptPath");
+    lua_pushstring(L, script_path.c_str());
+    int status = lua_pcall(L, 1, 0, 0);
+    if(status != LUA_OK) {
+        const std::string err_msg = lua_tostring(L, -1);
+        l_message("HandleLuascript", err_msg);
+        lua_pop(L, 1);
+        return 0;
+    }
+
+    const std::string arg = "c_to_lua_req";
+    lua_getglobal(L, "DoTask");
+    lua_pushstring(L, arg.c_str());
+    status = lua_pcall(L, 1, 1, 0);
+    if(status != LUA_OK) {
+        const std::string err_msg = lua_tostring(L, -1);
+        l_message("HandleLuascript", err_msg);
+        lua_pop(L, 1);
+        return 0;
+    }
+
+    const std::string ret = lua_tostring(L, -1);
+    std::cout << "c: " << ret << std::endl;
+    lua_pop(L, 1);
+    return 1;
+}
+
 static int pmain(lua_State* L) {
-    int result = 0;
     const std::string init_path = lua_tostring(L, 1);
     const std::string script_path = lua_tostring(L, 2);
-    std::cout << init_path << std::endl;
-    std::cout << script_path << std::endl;
 
-    lua_pushinteger(L, result);
+    luaL_openlibs(L);
+    HandleLuainit(L, init_path);
+    int status = HandleLuascript(L, script_path);
+
+    if(status) // success
+        lua_pushboolean(L, 1); // singal no errors
+    else
+        lua_pushboolean(L, 0);
+
     return 1;
 }
 
@@ -105,9 +144,11 @@ int main(int argc, char* argv[]) {
     int status = lua_pcall(L, 2, 1, 0);
 
     int result = 0;
-    if(status != LUA_OK) report(L, argv[0]);
-    else result = lua_tointeger(L, -1);
-    std::cout << "result: " << result << std::endl;
+    if(status != LUA_OK) Report(L, argv[0]);
+    else {
+        result = lua_toboolean(L, -1);
+        std::cout << "result: " << result << std::endl;
+    }
 
     lua_close(L);
     return (status == LUA_OK && result)?0:1;
