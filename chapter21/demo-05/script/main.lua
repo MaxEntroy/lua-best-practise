@@ -18,12 +18,12 @@ local function TestCGetStudentInfo()
     for _, id in ipairs(stu_id_list) do
         print("id:---------"..id)
         local stu_info = CGetStudentInfo(id)
-        --[[
-        lua异常触发代码
+
         for k, v in pairs(stu_info) do
             print(k,v)
         end
-        ]]
+        
+        --[[
         if stu_info then
             for k, v in pairs(stu_info) do
                 print(k.."->"..v)
@@ -31,6 +31,7 @@ local function TestCGetStudentInfo()
         else
             print("lua: No stu_info.")
         end
+        ]]
     end
 end
 --------------------
