@@ -350,6 +350,35 @@ int main(int argc, char* argv[]) {
 参考<br>
 [Lua C API 的正确用法](https://blog.codingnow.com/2015/05/lua_c_api.html)<br>
 
+
+#### c/cpp全局函数批量注册/表化
+
+本节，我自己认为，有一下几个重点
+- 为什么是c/cpp全局函数？
+- 循环注册/表化的好处是什么？为什么要这么做
+- requiref这个函数是干嘛的，不用行不行
+
+本节主要设计c函数作为lib，批量注册/表化的能力。对于一些常用API，梳理下接口逻辑
+```c
+#define luaL_newlib(L,l)  \
+  (luaL_checkversion(L), luaL_newlibtable(L,l), luaL_setfuncs(L,l,0))
+
+// c->stack，创建一个lua table
+// 指定为hash table
+// 大小少一个是因为luaL_Reg的最后一个元素是sentinel
+#define luaL_newlibtable(L,l)	\
+  lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
+ 
+// Registers all functions in the array l (see luaL_Reg) into the table on the top of the stack (below optional upvalues, see next).
+// 这个函数提供一个批量注册表化的能力
+LUALIB_API void (luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
+```
+
+简单来说，从API的设计中我们可以看出，lua是希望使用c函数时，把他们放入一个表中，在逻辑上形成一个lib，来供Lua访问
+所以，循环注册的好处是，先把全局函数在一个统一的地方定义好。逻辑上对应一个lib。操作也更加方便。表化就是逻辑上统一，功能类似的全局函数放入同一个lib当中。
+
+
+
 ## demo-01
 - lua热更新
 做了热更新的实验，有如下结论
