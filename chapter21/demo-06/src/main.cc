@@ -46,6 +46,22 @@ static void HandleLuainit(lua_State* L, const std::string& init_path) {
     lua_register(L, "CGetStudentInfo", GetStudentInfo);
 }
 
+// 循环注册
+static void HandleLuainit1(lua_State* L, const std::string& init_path) {
+    luaL_dofile(L, init_path.c_str());
+
+    static const luaL_Reg l[] = {
+        {"CFoo", Foo},
+        {"CSumAndAver", SumAndAver},
+        {"CGetStudentInfo", GetStudentInfo},
+        {NULL,NULL}
+    };
+
+    for(const luaL_Reg* p = l; p->name; ++p) {
+        lua_register(L, p->name, p->func);
+    }
+}
+
 static int HandleLuascript(lua_State* L, const std::string& script_path) {
     lua_getglobal(L, "SetScriptPath");
     lua_pushstring(L, script_path.c_str());
@@ -82,7 +98,7 @@ static int pmain(lua_State* L) {
     const std::string script_path = lua_tostring(L, 2);
 
     luaL_openlibs(L);
-    HandleLuainit(L, init_path);
+    HandleLuainit1(L, init_path);
     int status = HandleLuascript(L, script_path);
 
     if(status)
