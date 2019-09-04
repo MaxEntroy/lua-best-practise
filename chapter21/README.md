@@ -906,3 +906,31 @@ Driver is done.
 分析上面的结果，为什么107没有报异常？
 这其实跟map的机制有关系，如果访问map当中某个不存在的key。map会自动加入这一项，value采用该类型默认值。
 上面的代码我们可以看到，Student其实采用了默认值。
+
+- demo-06
+我们来看下表化的代码
+```cpp
+// 表化
+static void HandleLuainit2(lua_State* L, const std::string& init_path) {
+    luaL_dofile(L, init_path.c_str());
+
+    static const luaL_Reg l[] = {
+        {"Add", Add},
+        {"Minus", Minus},
+        {NULL, NULL},
+    };
+
+    luaL_newlib(L, l);
+    lua_setglobal(L, "CAPI");
+}
+```
+直观来看，确实非常方便。如果c提供大量函数供lua访问.下面的过程显然太麻烦了。
+```cpp
+lua_createtable()
+do 
+    lua_pushcfunction()
+    lua_setfield()
+until all functions is set
+lua_setglobal()
+```
+需要特别注意的一点是，```luaL_newlib()```只是简化了前3步的过程，并且提供了循环注册的能力。但是最后的```lua_setglobal()```的能力并没有提供。
