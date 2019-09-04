@@ -347,6 +347,45 @@ int main(int argc, char* argv[]) {
 }
 ```
 
+- lua_CFunction抛出异常
+
+官方文档里面提到，大部分Lua CAPI都会抛出异常。对于我们自己写的lua_CFunction作为lib提供给lua函数使用，如果想抛出异常，应该怎么做呢？
+采用如下函数：
+```cpp
+int lua_error (lua_State *L);
+Generates a Lua error, using the value at the top of the stack as the error object. This function does a long jump, and therefore never returns (see luaL_error).
+// 正确用法是：
+// 1.先把错误msg入栈
+// 2.调用lua_error抛出异常
+```
+注意这个函数的使用场景：在c函数内部，通过lua_error来抛出错误。我们看一个例子：
+```cpp
+int Add(lua_State* L) {
+    int n = lua_gettop(L);
+    if (n != 2) {
+        lua_pushliteral(L, "Wrong numbers of arguments!");
+        lua_error(L); // 不用返回值 猜测如文档所说，做了long jump，所以该函数不返回
+    }
+
+    lua_Number left = 0.0;
+    lua_Number right = 0.0;
+
+    if(lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+        left = lua_tonumber(L, 1);
+        right = lua_tonumber(L, 2);
+    }
+    else {
+        lua_pushliteral(L, "Invalid arguments!");
+        lua_error(L);
+    }
+
+    lua_Number res = left + right;
+    lua_pushnumber(L, res);
+
+    return 1;
+}
+```
+
 参考<br>
 [Lua C API 的正确用法](https://blog.codingnow.com/2015/05/lua_c_api.html)<br>
 
