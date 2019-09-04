@@ -26,4 +26,7 @@ struct Student {
 int GetStudentInfo(lua_State* L);
 void MakeStudentInfo(std::map<int, Student>& stu_info_table);
 
+int Add(lua_State* L);
+int Minus(lua_State* L);
+
 #endif

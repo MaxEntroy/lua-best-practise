@@ -18,12 +18,13 @@ local function TestCGetStudentInfo()
     for _, id in ipairs(stu_id_list) do
         print("id:---------"..id)
         local stu_info = CGetStudentInfo(id)
-
+        
+        --[[
         for k, v in pairs(stu_info) do
             print(k,v)
         end
+        ]]
         
-        --[[
         if stu_info then
             for k, v in pairs(stu_info) do
                 print(k.."->"..v)
@@ -31,17 +32,30 @@ local function TestCGetStudentInfo()
         else
             print("lua: No stu_info.")
         end
-        ]]
+
     end
 end
+
+local function TestCAPI()
+    print("lua: TestCAPI called.")
+    local left = 3
+    local right = 4
+
+    local ret = CAPI.Add(left, right)
+    print("lua: left + right = "..ret)
+
+    ret = CAPI.Minus(left, right)
+    print("lua: left - right = "..ret)
+end
+
 --------------------
---
 function _M.main(arg)
     print("lua: "..arg)
-
+    
     -- TestCFoo()
     -- TestCSumAndAver()
-    TestCGetStudentInfo()
+    -- TestCGetStudentInfo()
+    TestCAPI()
 
     local response = "lua_to_c_response"
     return response

@@ -62,6 +62,20 @@ static void HandleLuainit1(lua_State* L, const std::string& init_path) {
     }
 }
 
+// 表化
+static void HandleLuainit2(lua_State* L, const std::string& init_path) {
+    luaL_dofile(L, init_path.c_str());
+
+    static const luaL_Reg l[] = {
+        {"Add", Add},
+        {"Minus", Minus},
+        {NULL, NULL},
+    };
+
+    luaL_newlib(L, l);
+    lua_setglobal(L, "CAPI");
+}
+
 static int HandleLuascript(lua_State* L, const std::string& script_path) {
     lua_getglobal(L, "SetScriptPath");
     lua_pushstring(L, script_path.c_str());
@@ -98,7 +112,7 @@ static int pmain(lua_State* L) {
     const std::string script_path = lua_tostring(L, 2);
 
     luaL_openlibs(L);
-    HandleLuainit1(L, init_path);
+    HandleLuainit2(L, init_path);
     int status = HandleLuascript(L, script_path);
 
     if(status)

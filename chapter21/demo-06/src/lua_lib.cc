@@ -21,7 +21,7 @@ int SumAndAver(lua_State* L) {
             sum += x;
         }
         else {
-            lua_pushliteral(L, "Invalidd arguments!");
+            lua_pushliteral(L, "Invalid arguments!");
             lua_error(L);
         }
     }
@@ -60,4 +60,58 @@ void MakeStudentInfo(std::map<int, Student>& stu_info_table) {
     };
 
     stu_info_table = std::map<int, Student>(stu_pair_list, stu_pair_list + sizeof(stu_pair_list)/sizeof(stu_pair_list[0]));
+}
+
+int Add(lua_State* L) {
+    int n = lua_gettop(L);
+    if (n != 2) {
+        lua_pushliteral(L, "Wrong numbers of arguments!");
+        lua_error(L);
+        return 1;
+    }
+
+    lua_Number left = 0.0;
+    lua_Number right = 0.0;
+
+    if(lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+        left = lua_tonumber(L, 1);
+        right = lua_tonumber(L, 2);
+    }
+    else {
+        lua_pushliteral(L, "Invalid arguments!");
+        lua_error(L);
+        return 1;
+    }
+
+    lua_Number res = left + right;
+    lua_pushnumber(L, res);
+
+    return 1;
+}
+
+int Minus(lua_State* L) {
+    int n = lua_gettop(L);
+    if (n != 2) {
+        lua_pushliteral(L, "Wrong numbers of arguments!");
+        lua_error(L);
+        return 1;
+    }
+
+    lua_Number left = 0.0;
+    lua_Number right = 0.0;
+
+    if(lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+        left = lua_tonumber(L, 1);
+        right = lua_tonumber(L, 2);
+    }
+    else {
+        lua_pushliteral(L, "Invalid arguments!");
+        lua_error(L);
+        return 1;
+    }
+
+    lua_Number res = left - right;
+    lua_pushnumber(L, res);
+
+    return 1;
 }
