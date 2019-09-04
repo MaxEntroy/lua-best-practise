@@ -67,7 +67,7 @@ int Add(lua_State* L) {
     if (n != 2) {
         lua_pushliteral(L, "Wrong numbers of arguments!");
         lua_error(L);
-        return 1;
+        return 0;
     }
 
     lua_Number left = 0.0;
@@ -80,7 +80,7 @@ int Add(lua_State* L) {
     else {
         lua_pushliteral(L, "Invalid arguments!");
         lua_error(L);
-        return 1;
+        return 0;
     }
 
     lua_Number res = left + right;
@@ -94,7 +94,7 @@ int Minus(lua_State* L) {
     if (n != 2) {
         lua_pushliteral(L, "Wrong numbers of arguments!");
         lua_error(L);
-        return 1;
+        return 0;
     }
 
     lua_Number left = 0.0;
@@ -107,7 +107,7 @@ int Minus(lua_State* L) {
     else {
         lua_pushliteral(L, "Invalid arguments!");
         lua_error(L);
-        return 1;
+        return 0;
     }
 
     lua_Number res = left - right;

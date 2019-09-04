@@ -41,7 +41,7 @@ local function TestCAPI()
     local left = 3
     local right = 4
 
-    local ret = CAPI.Add(left, right)
+    local ret = CAPI.Add(left)
     print("lua: left + right = "..ret)
 
     ret = CAPI.Minus(left, right)
