@@ -908,6 +908,7 @@ Driver is done.
 上面的代码我们可以看到，Student其实采用了默认值。
 
 - demo-06
+
 我们来看下表化的代码
 ```cpp
 // 表化
@@ -924,7 +925,9 @@ static void HandleLuainit2(lua_State* L, const std::string& init_path) {
     lua_setglobal(L, "CAPI");
 }
 ```
+
 直观来看，确实非常方便。如果c提供大量函数供lua访问.下面的过程显然太麻烦了。
+
 ```cpp
 lua_createtable()
 do 
@@ -933,4 +936,5 @@ do
 until all functions is set
 lua_setglobal()
 ```
+
 需要特别注意的一点是，```luaL_newlib()```只是简化了前3步的过程，并且提供了循环注册的能力。但是最后的```lua_setglobal()```的能力并没有提供。
