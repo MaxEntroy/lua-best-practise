@@ -416,7 +416,142 @@ LUALIB_API void (luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
 简单来说，从API的设计中我们可以看出，lua是希望使用c函数时，把他们放入一个表中，在逻辑上形成一个lib，来供Lua访问
 所以，循环注册的好处是，先把全局函数在一个统一的地方定义好。逻辑上对应一个lib。操作也更加方便。表化就是逻辑上统一，功能类似的全局函数放入同一个lib当中。
 
+下面说下```luaL_requiref```这个函数，在此之前，我们先来回顾lua当中的require的作用
+>为了方便代码管理,通常会把 lua 代码分成不同的模块,然后在通过 require 函数把它们加载进来
+即，require的作用和c/cpp当中的```#include```作用很像，把需要的包，加载进来，这样client代码就可以使用包中提供的变量和函数。
+那么，加载进来，是加载到哪呢？是加载到```package.loaded```，当client代码访问mod.func的时候，会到```package.loaded```当中查找mod
 
+好了，对于lua代码，我们可以用require来完成对于包(module/lib)的加载，那么对于c/cpp写的lib，如果我们需要使用他们，应该怎么加载呢？
+此时，就用到了luaL_requiref。所以，这个函数的作用，就是把modname指示的lib(通常是一个table,但是里面的function field由c/cpp写成),加载进package.loaded，供lua访问。简单来说，**c/cpp写的lib通过luaL_requiref加载进package.loaded，来供lua使用**
+```
+void luaL_requiref (lua_State *L, const char *modname,
+                    lua_CFunction openf, int glb);
+If modname is not already present in package.loaded, calls function openf with string modname as an argument and sets the call result in package.loaded[modname], as if that function has been called through require.
+
+If glb is true, also stores the module into global modname.
+
+Leaves a copy of the module on the stack.
+```
+
+下面我们来看一下源码中对于standard libraries的说明
+>The standard Lua libraries provide useful functions that are implemented directly through the C API.
+1.Some of these functions provide essential services to the language
+2.others provide access to "outside" services (e.g., I/O)
+3.and others could be implemented in Lua itself, but are quite useful or have critical performance requirements that deserve an implementation in C
+
+上面说了标准库使用c去设计的原因，最后一点提到了性能。
+标准库主要有以下几个
+- basic library (§6.1);
+- coroutine library (§6.2);
+- package library (§6.3);
+- string manipulation (§6.4);
+- basic UTF-8 support (§6.5);
+- table manipulation (§6.6);
+- mathematical functions (§6.7) (sin, log, etc.);
+- input and output (§6.8);
+- operating system facilities (§6.9);
+- debug facilities (§6.10).
+
+下面来看下源码当中的实现，首先是最外层```luaL_openlibs```
+
+```cpp
+// luaL_requiref做的事情，package.loaded[modname] = openf(), 只是类比，实现细节不是这样
+static const luaL_Reg loadedlibs[] = {
+  {"_G", luaopen_base}, // 从这可以看出，_G就是一个table
+  {LUA_LOADLIBNAME, luaopen_package},
+  {LUA_COLIBNAME, luaopen_coroutine},
+  {LUA_TABLIBNAME, luaopen_table},
+  {LUA_IOLIBNAME, luaopen_io},
+  {LUA_OSLIBNAME, luaopen_os},
+  {LUA_STRLIBNAME, luaopen_string},
+  {LUA_MATHLIBNAME, luaopen_math},
+  {LUA_UTF8LIBNAME, luaopen_utf8},
+  {LUA_DBLIBNAME, luaopen_debug},
+#if defined(LUA_COMPAT_BITLIB)
+  {LUA_BITLIBNAME, luaopen_bit32},
+#endif
+  {NULL, NULL}
+};
+
+LUALIB_API void luaL_openlibs (lua_State *L) {
+  const luaL_Reg *lib;
+  /* "require" functions from 'loadedlibs' and set results to global table */
+  for (lib = loadedlibs; lib->func; lib++) {
+    luaL_requiref(L, lib->name, lib->func, 1); // package.loaded[lib->name] = (lib->func)()
+    lua_pop(L, 1);  /* remove lib */
+  }
+}
+
+```
+
+我们进一步再来看一个openf函数
+```
+static const luaL_Reg mathlib[] = {
+  {"abs",   math_abs},
+  {"acos",  math_acos},
+  {"asin",  math_asin},
+  {"atan",  math_atan},
+  {"ceil",  math_ceil},
+  {"cos",   math_cos},
+  {"deg",   math_deg},
+  {"exp",   math_exp},
+  {"tointeger", math_toint},
+  {"floor", math_floor},
+  {"fmod",   math_fmod},
+  {"ult",   math_ult},
+  {"log",   math_log},
+  {"max",   math_max},
+  {"min",   math_min},
+  {"modf",   math_modf},
+  {"rad",   math_rad},
+  {"random",     math_random},
+  {"randomseed", math_randomseed},
+  {"sin",   math_sin},
+  {"sqrt",  math_sqrt},
+  {"tan",   math_tan},
+  {"type", math_type},
+#if defined(LUA_COMPAT_MATHLIB)
+  {"atan2", math_atan},
+  {"cosh",   math_cosh},
+  {"sinh",   math_sinh},
+  {"tanh",   math_tanh},
+  {"pow",   math_pow},
+  {"frexp", math_frexp},
+  {"ldexp", math_ldexp},
+  {"log10", math_log10},
+#endif
+  /* placeholders */
+  {"pi", NULL},
+  {"huge", NULL},
+  {"maxinteger", NULL},
+  {"mininteger", NULL},
+  {NULL, NULL}
+};
+
+
+/*
+** Open math library
+*/
+LUAMOD_API int luaopen_math (lua_State *L) {
+  luaL_newlib(L, mathlib); // 这里在栈上创建一个table, 把luaL_Reg mathlib[]当中的函数都注册进来，其实做了表化的工作
+  lua_pushnumber(L, PI);
+  lua_setfield(L, -2, "pi");
+  lua_pushnumber(L, (lua_Number)HUGE_VAL);
+  lua_setfield(L, -2, "huge");
+  lua_pushinteger(L, LUA_MAXINTEGER);
+  lua_setfield(L, -2, "maxinteger");
+  lua_pushinteger(L, LUA_MININTEGER);
+  lua_setfield(L, -2, "mininteger");
+  return 1;
+}
+```
+
+总结，从上面的做法，我们可以大致看出，源码是这么做的
+1.定义```static const luaL_Reg xxxlib[]```
+2.写xxxlib的openf函数，```luaopen_xxx```，这个函数做表化
+3.最后,调用luaL_requiref(L,modname, openf, glb)加载到package.loaded
+
+那，有一个疑问，不加载进package.loaded是否可以？显然可以，luaL_newlib，lua_setglobal也是可以的。即，把这个lib放入全局表。而不是单独作为一个package.loaded当中的item.那么，源码的做法为什么还要单独放，不放到统一的_G当中呢？说下我的理解哈，我觉得也行，即使放到_G中，我们也可以用```local mod = mod or local mod = _G.mod```来隔离全局变量，并提升性能。但是，这可能不算好的设计。其实我们可以看到_G对应的是```lua_openbase```，即全局表只放最基础的。不同的mod，对于lib function做了逻辑的划分，使逻辑更加清晰。我想，这是源码这么做的初衷。相当于对mod做了逻辑上的隔离，逻辑上自然也就更清晰。
 
 ## demo-01
 - lua热更新
