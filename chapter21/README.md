@@ -308,8 +308,8 @@ report内部，不在执行。因为执行会发现，逻辑值无法转成char*
     - c(被掉)：此时的c，写法非常trick，是类似与lua->c时，c的方式。即，从栈中获取参数，把返回值压入栈中。并且要满足lua_CFunction
     - c(宿主)承担的是c->lua当中的c，c(被调)承担的是lua->c当中的c。
     - 多说一点，此种方式。lua_pcall当中nresults应当与c(被调用)返回值个数一致
-        - c(被掉)：栈中返回值个数之下的内容会被丢弃。
-        - lua_pcall: nresults的个数，只是打印栈中元素的个数(不好理解，看代码)
+        - c(被掉)：不是lua->c，不是private stack. 栈里参数被丢弃是因为lua_pcall执行完会pop参数和function，和private stack丢弃参数没有直接关系
+        - c(被掉)：最特殊的一点在于，不是lua->c，但是行为却和lua->c的行为基本一致，从栈里获取参数，把结果压入栈中。但是本质上，不是private stack根本原因在于，栈里的参数，是lua_pcall之前压入lua stack L的，如果是private stack，又怎么会压入全局lua stack L. 所以，看起来非常trick，一定要注意本质区别。
 
 这里非常容易误解的是，一定要注意区分c函数的返回值是指示返回个数，还是正常逻辑的返回值。其实就是区别c函数是不是被压入栈里调用的一类。
 
