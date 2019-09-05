@@ -423,7 +423,7 @@ LUALIB_API void (luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
 
 好了，对于lua代码，我们可以用require来完成对于包(module/lib)的加载，那么对于c/cpp写的lib，如果我们需要使用他们，应该怎么加载呢？
 此时，就用到了luaL_requiref。所以，这个函数的作用，就是把modname指示的lib(通常是一个table,但是里面的function field由c/cpp写成),加载进package.loaded，供lua访问。简单来说，**c/cpp写的lib通过luaL_requiref加载进package.loaded，来供lua使用**
-```
+```c
 void luaL_requiref (lua_State *L, const char *modname,
                     lua_CFunction openf, int glb);
 If modname is not already present in package.loaded, calls function openf with string modname as an argument and sets the call result in package.loaded[modname], as if that function has been called through require.
@@ -454,7 +454,7 @@ Leaves a copy of the module on the stack.
 
 下面来看下源码当中的实现，首先是最外层```luaL_openlibs```
 
-```cpp
+```c
 // luaL_requiref做的事情，package.loaded[modname] = openf(), 只是类比，实现细节不是这样
 static const luaL_Reg loadedlibs[] = {
   {"_G", luaopen_base}, // 从这可以看出，_G就是一个table
@@ -485,7 +485,7 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
 ```
 
 我们进一步再来看一个openf函数
-```
+```c
 static const luaL_Reg mathlib[] = {
   {"abs",   math_abs},
   {"acos",  math_acos},
