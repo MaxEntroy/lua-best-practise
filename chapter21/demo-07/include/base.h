@@ -15,6 +15,7 @@ extern "C" {
 void StackDump(lua_State* L);
 
 void ShowPackageLoaded(lua_State* L);
+
 // print an error message
 #if !defined(lua_writestringerror)
 #define lua_writestringerror(s, p) \
