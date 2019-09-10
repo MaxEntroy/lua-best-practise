@@ -397,6 +397,9 @@ int Add(lua_State* L) {
 - 循环注册/表化的好处是什么？为什么要这么做
 - requiref这个函数是干嘛的，不用行不行
 
+先说一下第一个问题，c也不是全局函数，和是否全局没有关系。我们看到lua源码当中c的写法有用到static，会限制文件级别作用域。
+这个问题最早想说的是cpp的问题，如果不是static修饰，编译不过。这里说的是cpp实现lib供lua调用。
+
 本节主要设计c函数作为lib，批量注册/表化的能力。对于一些常用API，梳理下接口逻辑
 ```c
 #define luaL_newlib(L,l)  \
@@ -423,6 +426,14 @@ LUALIB_API void (luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
 
 好了，对于lua代码，我们可以用require来完成对于包(module/lib)的加载，那么对于c/cpp写的lib，如果我们需要使用他们，应该怎么加载呢？
 此时，就用到了luaL_requiref。所以，这个函数的作用，就是把modname指示的lib(通常是一个table,但是里面的function field由c/cpp写成),加载进package.loaded，供lua访问。简单来说，**c/cpp写的lib通过luaL_requiref加载进package.loaded，来供lua使用**
+
+注意，上面的解释没有问题。真正的问题出在，对于lua当中```require```的理解有误，后者会返回需要的module，只不过如果缓存(package.loaded)里有，就直接从缓存返回。
+否则，加载到缓存中，再返回，主要是为了避免重复加载的过程耗时。我在demo-07当中犯的错误主要是对于缓存的理解错误，缓存里有，但是也需要从缓存里再加载并返回。所以，
+代码还是需要调用```require```
+
+为什么```luaL_openlibs()```里面的库都可以直接访问，是因为它在调用```luaL_requiref```的时候，最后一个参数为1，最后的结果会放入```_G```当中，所以可以直接访问。
+但是，我在写``luaopen_mylibs````的时候，没有加载进入```_G```中，所以不能直接访问。
+
 ```c
 void luaL_requiref (lua_State *L, const char *modname,
                     lua_CFunction openf, int glb);
@@ -1115,3 +1126,38 @@ lua_setglobal()
 
 - demo-07
 上一小节，实现了基本的表化，以及Lua CAPI 抛出异常的能力。本小节实现一个规范的表化操作。
+
+对比规范的写法，和我的写法
+```c
+LUALIB_API void luaL_openlibs (lua_State *L) {
+  const luaL_Reg *lib;
+  /* "require" functions from 'loadedlibs' and set results to global table */
+  for (lib = loadedlibs; lib->func; lib++) {
+    luaL_requiref(L, lib->name, lib->func, 1); // 所以基础库都会加载进入_G，因此可以直接访问
+    lua_pop(L, 1);  /* remove lib */
+  }
+}
+
+void luaopen_mylibs(lua_State* L) {
+    for(const luaL_Reg* p = mylibs; p->func; ++p) {
+        luaL_requiref(L, p->name, p->func, 0); // 我这里没有放入_G当中
+    }
+}
+```
+
+下面我们看到lua的写法，还是需要require的操作才可以
+```lua
+local function TestMyMathLib()
+    print("lua: TestMyMath called.")
+    local mymath = require "MyMath"
+
+    local left = 3
+    local right = 4
+
+    local ret = mymath.Add(left, right)
+    print("lua: left + right = "..ret)
+
+    ret = mymath.Minus(left, right)
+    print("lua: left - right = "..ret)
+end
+```
