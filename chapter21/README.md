@@ -349,7 +349,7 @@ int main(int argc, char* argv[]) {
 
 - lua_CFunction抛出异常
 
-官方文档里面提到，大部分Lua CAPI都会抛出异常。对于我们自己写的lua_CFunction作为lib提供给lua函数使用，如果想抛出异常，应该怎么做呢？
+官方文档里面提到，大部分Lua CAPI都会抛出异常。对于我们自己写的lua_CFunction作为lib提供给lua函数使用，如果想抛出异常，应该怎么做呢？(这里一定要注意区分一点，上文讲到的lua debug是Lua CAPI如何捕获一个异常，本节是Lua CAPI如何抛出一个异常)
 采用如下函数：
 ```cpp
 int lua_error (lua_State *L);
