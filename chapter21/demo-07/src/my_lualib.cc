@@ -1,6 +1,7 @@
-#include "include/lua_lib.h"
+#include "include/my_lualib.h"
 
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 #include <utility>
@@ -34,7 +35,7 @@ static int OtherSumAndAver(lua_State* L) {
     return 2;
 }
 
-static const LuaL_Reg otherlib[] = {
+static const luaL_Reg otherlib[] = {
     {"Foo", OtherFoo},
     {"SumAndAver", OtherSumAndAver},
     {NULL, NULL}
@@ -49,6 +50,16 @@ int luaopen_other(lua_State* L) {
 // --------------------------------------------------------------
 // Student lib
 // --------------------------------------------------------------
+
+class Student {
+public:
+    int stu_id;
+    std::string stu_name;
+
+    Student() : stu_id(-1) {}
+    Student(int id, const std::string& name) : stu_id(id), stu_name(name) {}
+};
+
 static void MakeStudentInfo(std::map<int, Student>& stu_info_table) {
     std::pair<int, Student> stu_pair_list[] = {
         std::make_pair(101, Student(101, "kang")),

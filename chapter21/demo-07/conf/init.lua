@@ -10,6 +10,7 @@ end
 
 function DoTask(arg)
     local task = require "main"
+    task.init()
     local ret = task.main(arg)
     return ret
 end

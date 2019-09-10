@@ -11,7 +11,7 @@ extern "C" {
 #include <gflags/gflags.h>
 
 #include "include/base.h"
-#include "include/lua_lib.h"
+#include "include/my_lualib.h"
 
 DEFINE_string(init_path, "", "lua init script");
 DEFINE_string(script_path, "", "the lua script path" );
@@ -40,40 +40,14 @@ static void Report(lua_State* L, const std::string& pname) {
     lua_pop(L, 1);
 }
 
-static void HandleLuainit(lua_State* L, const std::string& init_path) {
+
+// 规范表化
+static void HandleLuaInit(lua_State* L, const std::string& init_path) {
     luaL_dofile(L, init_path.c_str());
 
-    lua_register(L, "CGetStudentInfo", GetStudentInfo);
-}
-
-// 循环注册
-static void HandleLuainit1(lua_State* L, const std::string& init_path) {
-    luaL_dofile(L, init_path.c_str());
-
-    static const luaL_Reg l[] = {
-        {"CFoo", Foo},
-        {"CSumAndAver", SumAndAver},
-        {"CGetStudentInfo", GetStudentInfo},
-        {NULL,NULL}
-    };
-
-    for(const luaL_Reg* p = l; p->name; ++p) {
-        lua_register(L, p->name, p->func);
-    }
-}
-
-// 表化
-static void HandleLuainit2(lua_State* L, const std::string& init_path) {
-    luaL_dofile(L, init_path.c_str());
-
-    static const luaL_Reg l[] = {
-        {"Add", Add},
-        {"Minus", Minus},
-        {NULL, NULL},
-    };
-
-    luaL_newlib(L, l);
-    lua_setglobal(L, "CAPI");
+    luaL_openlibs(L);
+    luaopen_mylibs(L);
+    //ShowPackageLoaded(L);
 }
 
 static int HandleLuascript(lua_State* L, const std::string& script_path) {
@@ -111,8 +85,7 @@ static int pmain(lua_State* L) {
     const std::string init_path = lua_tostring(L, 1);
     const std::string script_path = lua_tostring(L, 2);
 
-    luaL_openlibs(L);
-    HandleLuainit2(L, init_path);
+    HandleLuaInit(L, init_path);
     int status = HandleLuascript(L, script_path);
 
     if(status)
