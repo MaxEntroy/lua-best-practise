@@ -163,5 +163,3 @@ int luaopen_mymath(lua_State* L) {
     luaL_newlib(L, mymathlib);
     return 1;
 }
-
-

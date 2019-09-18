@@ -1,4 +1,3 @@
-
 local function TestOtherLib()
     print("lua: TestOtherLib called.")
     local other = require "Other"
