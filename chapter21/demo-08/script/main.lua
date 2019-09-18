@@ -1,6 +1,7 @@
 local function TestOtherLib()
     print("lua: TestOtherLib called.")
-    local other = require "libother"
+    print("clibpath: "..package.cpath)
+    local other = require "other"
 
     other.Foo()
 

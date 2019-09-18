@@ -49,9 +49,12 @@ static void HandleLuaInit(lua_State* L, const std::string& init_path) {
 }
 
 static int HandleLuascript(lua_State* L, const std::string& script_path, const std::string& clib_path) {
+    lua_pushcfunction(L, msghandler);
+    int err_index = lua_gettop(L);
+
     lua_getglobal(L, "SetScriptPath");
     lua_pushstring(L, script_path.c_str());
-    int status = lua_pcall(L, 1, 0, 0);
+    int status = lua_pcall(L, 1, 0, err_index);
     if(status != LUA_OK) {
         const std::string err_msg = lua_tostring(L, -1);
         l_message("HandleLuascript", err_msg);
@@ -61,16 +64,13 @@ static int HandleLuascript(lua_State* L, const std::string& script_path, const s
 
     lua_getglobal(L, "SetCLibPath");
     lua_pushstring(L, clib_path.c_str());
-    status = lua_pcall(L, 1, 0, 0);
+    status = lua_pcall(L, 1, 0, err_index);
     if(status != LUA_OK) {
         const std::string err_msg = lua_tostring(L, -1);
         l_message("HandleLuascript", err_msg);
         lua_pop(L, 1);
         return 0;
     }
-
-    lua_pushcfunction(L, msghandler);
-    int err_index = lua_gettop(L);
 
     const std::string arg = "c_to_lua_req";
     lua_getglobal(L, "DoTask");
