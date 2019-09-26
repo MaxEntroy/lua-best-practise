@@ -1162,3 +1162,11 @@ local function TestMyMathLib()
     print("lua: left - right = "..ret)
 end
 ```
+
+- demo-08
+耗时的一个demo，排查了很多问题，具体可以参考cpp-learning的几个项目。下面主要说下注意点:
+
+1.other.so的编译。lua是c程序，所以other.so必须是c的符号，才可以被识别，否则会有```undefined symbol: luaopen_other```这样的错误，解决办法就是```extern "C"```修饰代码即可。
+编译命令,```g++ -fPIC -shared -o other.so other_lib.cc```<br>
+2.other.so的路径，需要cpath的支持。<br>
+3.使用liblua.so，否则，other.so使用了Lua CAPI，需要这部分objs，如果other.so带着.a编译，会和binary当中的.a冲突<br>
