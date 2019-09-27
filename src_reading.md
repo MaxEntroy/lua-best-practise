@@ -183,8 +183,7 @@ LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
   }
 ```
 可以很明显发现，当我们调用lua_pushcfunction时，本质上调用的是lua_pushcclosure，传递上值个数为0.但是，在lua-5.1版本当中，对于n==0的情形，并无特殊处理。
-我理解开销较大的地方应该是对于GC的check，导致显得不是很light，而后者对于n==0的情形，有了单独的处理。所以，lua-5.2版本的lua_pushcfunction，显得像是 light c function
-对于没有上值的需求，我们可以直接使用，lua_pushcfunction and lua_pcall即可。
+我理解开销较大的地方应该是对于GC的check，导致显得不是很light，而后者对于n==0的情形，有了单独的处理。所以，lua-5.2版本的lua_pushcfunction，实现了light c function。对于没有上值的需求，我们可以直接使用，lua_pushcfunction and lua_pcall即可。
 
 我们回看lua_cpcall，其实这个函数是为了调用类似pmain这样的c function，他们不需要上值，如果在5.1版本使用lua_pcall，那么势必要进行lua_pushcfunction的操作，而后者并无light c function的优化。这是lua_cpcall存在的原因。注意一点，我们在这里讨论的优化，是针对有无上值时lua_pushcfunction是否优化。和这个c函数是否有参数没有关系，即和lua_pushlightuserdata无关。
 
