@@ -5,11 +5,13 @@ EXE_DIR:=./bin
 TARGET:=$(EXE_DIR)/main
 OBJS:= $(wildcard $(SRC_DIR)/*.cc)
 
-CC:=g++
-CFLAGS:=-g -Wall -llua -ldl -lgflags -lpthread -std=c++11
+CXX:=g++
+CXXFLAGS:=-g -Wall -std=c++11
+
+LIBS:= -lgflags -lpthread -llua -ldl
 
 $(TARGET):$(OBJS)
-	$(CC) -o $@ $(OBJS) $(CFLAGS)
+	$(CXX) -o $@ $(OBJS) $(CXXFLAGS) $(LIBS)
 
 clean:
 	rm -rf $(TARGET)

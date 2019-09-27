@@ -10,7 +10,7 @@ end
 
 local function TestStudentLib()
     print("lua: TestStudentLib called.")
-    local student = require "Student"
+    local student = require "student"
 
     local stu_id_list = {101, 102, 103, 107}
     for _, id in ipairs(stu_id_list) do
@@ -35,7 +35,7 @@ end
 
 local function TestMyMathLib()
     print("lua: TestMyMath called.")
-    local mymath = require "MyMath"
+    local mymath = require "mymath"
 
     local left = 3
     local right = 4
@@ -58,8 +58,8 @@ end
 function _M.main(arg)
     print("lua: "..arg)
     
-    TestOtherLib()
-    -- TestStudentLib()
+    -- TestOtherLib()
+    TestStudentLib()
     -- TestMyMathLib()
 
     local response = "lua_to_c_response"
