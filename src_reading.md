@@ -135,3 +135,58 @@ LUAMOD_API int luaopen_math (lua_State *L) {
 }
 
 ```
+
+## light c function
+这一切都始于云风的一篇文章，看参考。里面提到了lua_cpcall在lua-5.2之后就废弃了，官方文档建议使用使用lua_pushcfunction和lua_pcall来进行代替。
+原因是lua-5.2支持了light c function. 对于此话，我最初臆想是lua_pushcfunction在以前版本没有支持，而是新版本才支持。后来，追查了两版的api，
+发现lua_pushcfunction其实在新老版本都是支持的。
+
+进一步考察源码,
+```lua
+-- lua-5.1实现
+LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
+    Closure *cl;
+    lua_lock(L);
+    luaC_checkGC(L);
+    api_checknelems(L, n);
+    cl = luaF_newCclosure(L, n, getcurrenv(L));
+    cl->c.f = fn;
+    L->top -= n;
+    while (n--)
+      setobj2n(L, &cl->c.upvalue[n], L->top+n);
+    setclvalue(L, L->top, cl);
+    lua_assert(iswhite(obj2gco(cl)));
+    api_incr_top(L);
+    lua_unlock(L);
+  }
+  
+-- lua-5.2实现
+LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
+    lua_lock(L);
+    if (n == 0) {
+      setfvalue(L->top, fn);
+    }
+    else {
+      Closure *cl;
+      api_checknelems(L, n);
+      api_check(L, n <= MAXUPVAL, "upvalue index too large");
+      luaC_checkGC(L);
+      cl = luaF_newCclosure(L, n);
+      cl->c.f = fn;
+      L->top -= n;
+      while (n--)
+        setobj2n(L, &cl->c.upvalue[n], L->top + n);
+      setclCvalue(L, L->top, cl);
+    }
+    api_incr_top(L);
+    lua_unlock(L);
+  }
+```
+可以很明显发现，当我们调用lua_pushcfunction时，本质上调用的是lua_pushcclosure，传递上值个数为0.但是，在lua-5.1版本当中，对于n==0的情形，并无特殊处理。
+我理解开销较大的地方应该是对于GC的check，导致显得不是很light，而后者对于n==0的情形，有了单独的处理。所以，lua-5.2版本的lua_pushcfunction，显得像是 light c function
+对于没有上值的需求，我们可以直接使用，lua_pushcfunction and lua_pcall即可。
+
+我们回看lua_cpcall，其实这个函数是为了调用类似pmain这样的c function，他们不需要上值，如果在5.1版本使用lua_pcall，那么势必要进行lua_pushcfunction的操作，而后者并无light c function的优化。这是lua_cpcall存在的原因。注意一点，我们在这里讨论的优化，是针对有无上值时lua_pushcfunction是否优化。和这个c函数是否有参数没有关系，即和lua_pushlightuserdata无关。
+
+参考
+[Lua C API 的正确用法](https://blog.codingnow.com/2015/05/lua_c_api.html)<br>
