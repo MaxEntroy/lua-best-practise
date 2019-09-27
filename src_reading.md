@@ -137,7 +137,7 @@ LUAMOD_API int luaopen_math (lua_State *L) {
 ```
 
 ## light c function
-这一切都始于云风的一篇文章，看参考。里面提到了lua_cpcall在lua-5.2之后就废弃了，官方文档建议使用使用lua_pushcfunction和lua_pcall来进行代替。
+这一切都始于云风的一篇文章，看参考。里面提到了lua_cpcall在lua-5.2之后就废弃了，官方文档建议使用lua_pushcfunction和lua_pcall来进行代替。
 原因是lua-5.2支持了light c function. 对于此话，我最初臆想是lua_pushcfunction在以前版本没有支持，而是新版本才支持。后来，追查了两版的api，
 发现lua_pushcfunction其实在新老版本都是支持的。
 
