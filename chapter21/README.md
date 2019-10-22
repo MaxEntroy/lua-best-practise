@@ -1092,7 +1092,7 @@ Driver is done.
 这其实跟map的机制有关系，如果访问map当中某个不存在的key。map会自动加入这一项，value采用该类型默认值。
 上面的代码我们可以看到，Student其实采用了默认值。
 
-- demo-06
+## demo-06
 
 我们来看下表化的代码
 ```cpp
@@ -1124,7 +1124,7 @@ lua_setglobal()
 
 需要特别注意的一点是，```luaL_newlib()```只是简化了前3步的过程，并且提供了循环注册的能力。但是最后的```lua_setglobal()```的能力并没有提供。
 
-- demo-07
+## demo-07
 
 上一小节，实现了基本的表化，以及Lua CAPI 抛出异常的能力。本小节实现一个规范的表化操作。
 
@@ -1163,7 +1163,7 @@ local function TestMyMathLib()
 end
 ```
 
-- demo-08
+## demo-08
 
 耗时的一个demo，排查了很多问题，具体可以参考cpp-learning的几个项目。下面主要说下注意点:
 
