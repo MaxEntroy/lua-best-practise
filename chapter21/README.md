@@ -1171,3 +1171,143 @@ end
 编译命令,```g++ -fPIC -shared -o other.so other_lib.cc```<br>
 2.使用liblua.so，否则，other.so使用了Lua CAPI，需要这部分objs，如果other.so带着.a编译，会和binary当中的.a冲突，提示muitiple vm这样的错误<br>
 3.other.so的路径，需要cpath的支持。<br>
+
+## demo-09
+这个demo主要是给出了对于pmain当中Lua CAPI异常的另一种做法。这里的做法，主要指的是pmain当中的异常怎么传递到上层。
+
+- 运行错误，如果一个C API会出现这种问题，一般都会抛异常，pmain可以捕获
+- 逻辑错误，比如lua_pcall通过返回值发现脚本执行错误，但是这个函数自身运行没有问题，本身并不会抛出异常，这种逻辑错我们可以通过返回值向上传递来让上层感知
+
+对于逻辑错误，demo-08用的是上面提到的办法去实现，即是通过返回值向上传递来实现
+```cpp
+static int HandleLuaInit(lua_State* L, const std::string& init_path) {
+    if(luaL_dofile(L, init_path.c_str())) {
+        l_message("HandleLuaInit", "luaL_dofile error");
+        return 0;
+    }
+
+    luaL_openlibs(L);
+    //luaopen_mylibs(L);
+    //ShowPackageLoaded(L);
+    return 1;
+}
+
+static int HandleLuascript(lua_State* L, const std::string& script_path, const std::string& clib_path) {
+    lua_pushcfunction(L, msghandler);
+    int err_index = lua_gettop(L);
+
+    lua_getglobal(L, "SetScriptPath");
+    lua_pushstring(L, script_path.c_str());
+    int status = lua_pcall(L, 1, 0, err_index);
+    if(status != LUA_OK) {
+        const std::string err_msg = lua_tostring(L, -1);
+        l_message("HandleLuascript", err_msg);
+        lua_pop(L, 1);
+        return 0;
+    }
+
+    lua_getglobal(L, "SetCLibPath");
+    lua_pushstring(L, clib_path.c_str());
+    status = lua_pcall(L, 1, 0, err_index);
+    if(status != LUA_OK) {
+        const std::string err_msg = lua_tostring(L, -1);
+        l_message("HandleLuascript", err_msg);
+        lua_pop(L, 1);
+        return 0;
+    }
+
+    const std::string arg = "c_to_lua_req";
+    lua_getglobal(L, "DoTask");
+    lua_pushstring(L, arg.c_str());
+    status = lua_pcall(L, 1, 1, err_index);
+    if(status != LUA_OK) {
+        const std::string err_msg = lua_tostring(L, -1);
+        l_message("HandleLuascript", err_msg);
+        lua_pop(L, 1);
+        return 0;
+    }
+
+    const std::string ret = lua_tostring(L, -1);
+    std::cout << "c: " << ret << std::endl;
+    lua_pop(L, 1);
+    return 1;
+}
+
+static int pmain(lua_State* L) {
+    const std::string init_path = lua_tostring(L, 1);
+    const std::string script_path = lua_tostring(L, 2);
+    const std::string clib_path = lua_tostring(L, 3);
+
+    int status = HandleLuaInit(L, init_path);
+    if(status) {
+        status = HandleLuascript(L, script_path, clib_path);
+    }
+
+    if(status)
+        lua_pushboolean(L, 1); // singal no errors
+    else
+        lua_pushboolean(L, 0);
+
+    return 1;
+}
+```
+我们可以看到pmain通过返回值感知到了底层Lua CAPI实现正确与否。
+
+另一种办法是，对于逻辑错误，我们也采用异常的方式，让它从形式上变成运行错误，这样不用上报，pmain更上一层的lua_pcall会捕获这个异常。一样达到了异常处理的目的
+```cpp
+static void HandleLuaInit(lua_State* L, const std::string& init_path) {
+    if(luaL_dofile(L, init_path.c_str())) {
+        lua_pushliteral(L, "HandleLuaInit: luaL_dofile raise an error");
+        lua_error(L);
+    }
+
+    luaL_openlibs(L);
+    //luaopen_mylibs(L);
+    //ShowPackageLoaded(L);
+}
+
+static void HandleLuascript(lua_State* L, const std::string& script_path, const std::string& clib_path) {
+    lua_pushcfunction(L, msghandler);
+    int err_index = lua_gettop(L);
+
+    lua_getglobal(L, "SetScriptPath");
+    lua_pushstring(L, script_path.c_str());
+    int status = lua_pcall(L, 1, 0, err_index);
+    if(status != LUA_OK) {
+        lua_error(L);
+        return;
+    }
+
+    lua_getglobal(L, "SetCLibPath");
+    lua_pushstring(L, clib_path.c_str());
+    status = lua_pcall(L, 1, 0, err_index);
+    if(status != LUA_OK) {
+        lua_error(L);
+        return;
+    }
+
+    const std::string arg = "c_to_lua_req";
+    lua_getglobal(L, "DoTask");
+    lua_pushstring(L, arg.c_str());
+    status = lua_pcall(L, 1, 1, err_index);
+    if(status != LUA_OK) {
+        lua_error(L);
+        return;
+    }
+
+    const std::string ret = lua_tostring(L, -1);
+    std::cout << "c: " << ret << std::endl;
+    lua_pop(L, 1);
+}
+
+static int pmain(lua_State* L) {
+    const std::string init_path = lua_tostring(L, 1);
+    const std::string script_path = lua_tostring(L, 2);
+    const std::string clib_path = lua_tostring(L, 3);
+
+    HandleLuaInit(L, init_path);
+    HandleLuascript(L, script_path, clib_path);
+
+    return 0;
+}
+```
