@@ -1173,12 +1173,12 @@ end
 3.other.so的路径，需要cpath的支持。<br>
 
 ## demo-09
-这个demo主要是给出了对于pmain当中Lua CAPI异常的另一种做法。这里的做法，主要指的是pmain当中的异常怎么传递到上层。
+这个demo主要是给出了对于pmain当中Lua CAPI异常的另一种做法。这里的做法，主要指的是pmain下层的异常怎么传递到pmain上层。
 
-- 运行错误，如果一个C API会出现这种问题，一般都会抛异常，pmain可以捕获
-- 逻辑错误，比如lua_pcall通过返回值发现脚本执行错误，但是这个函数自身运行没有问题，本身并不会抛出异常，这种逻辑错我们可以通过返回值向上传递来让上层感知
+- 运行错误，如果一个C API会出现这种问题，一般都会抛异常，pmain上层通过lua_pcall可以捕获
+- 逻辑错误，比如pmain下层lua_pcall通过返回值发现脚本执行错误，但是这个函数自身运行没有问题，本身并不会抛出异常，这种逻辑错我们可以通过返回值向上传递来让上层感知
 
-对于逻辑错误，demo-08用的是上面提到的办法去实现，即是通过返回值向上传递来实现
+对于逻辑错误，demo-08用的是上面提到的办法去实现，即通过返回值向上层层传递来实现
 ```cpp
 static int HandleLuaInit(lua_State* L, const std::string& init_path) {
     if(luaL_dofile(L, init_path.c_str())) {
