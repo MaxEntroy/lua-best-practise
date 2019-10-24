@@ -40,12 +40,16 @@ static void Report(lua_State* L, const std::string& pname) {
     lua_pop(L, 1);
 }
 
-static void HandleLuaInit(lua_State* L, const std::string& init_path) {
-    luaL_dofile(L, init_path.c_str());
+static int HandleLuaInit(lua_State* L, const std::string& init_path) {
+    if(luaL_dofile(L, init_path.c_str())) {
+        l_message("HandleLuaInit", "luaL_dofile error");
+        return 0;
+    }
 
     luaL_openlibs(L);
     //luaopen_mylibs(L);
     //ShowPackageLoaded(L);
+    return 1;
 }
 
 static int HandleLuascript(lua_State* L, const std::string& script_path, const std::string& clib_path) {
@@ -94,8 +98,10 @@ static int pmain(lua_State* L) {
     const std::string script_path = lua_tostring(L, 2);
     const std::string clib_path = lua_tostring(L, 3);
 
-    HandleLuaInit(L, init_path);
-    int status = HandleLuascript(L, script_path, clib_path);
+    int status = HandleLuaInit(L, init_path);
+    if(status) {
+        status = HandleLuascript(L, script_path, clib_path);
+    }
 
     if(status)
         lua_pushboolean(L, 1); // singal no errors
